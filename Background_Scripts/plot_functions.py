@@ -235,7 +235,7 @@ def plot_pie_clusters(models_list, k_cluster, nodes_color, nodes_subnet, fig_tit
     fig.show()
     return
 
-def plot_mean_tubal_scalars(As, k_indexes, title='', step_xticks=2, figsize=(10,4)):
+def plot_mean_tubal_scalars(As, k_indexes, title='', step_xticks=2, figsize=(10,4), fig_dir=None):
     """Plot the 'k_indexes' of the mean absolute value of tubal scalars of the 3-order tensor 'As'
 
         Parameters
@@ -264,6 +264,8 @@ def plot_mean_tubal_scalars(As, k_indexes, title='', step_xticks=2, figsize=(10,
     ax.set_xlabel(r'$k$', fontsize=16)
     ax.set_title(title, fontsize=18)
     ax.set_xticks(range(0,len(df),step_xticks))
+    if fig_dir != None:
+        plt.savefig(fig_dir)
     plt.show()
     return
 
