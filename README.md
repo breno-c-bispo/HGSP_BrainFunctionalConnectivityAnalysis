@@ -19,7 +19,7 @@ Contact information: <juliano.lima@ufpe.br> or <f.a.nobregasantos@uva.nl>
 
 This folder consist in the following folders / files:
 
-- **t_hgsp_fmri.ipynb**: the main Jupyter Notebook that reproduce the results presented in the papaer;
+- **t_hgsp_fmri.ipynb**: the main Jupyter Notebook that reproduce the results presented in the paper;
 - **df_peak_ii_tc_0_4_zscore_mean_tubal_scalars.pkl**: a Pandas Dataframe that consists of peak values at $k=0,4$ of the tubal scalars average of $\left(\widehat{\mathcal{M}_1}_s^{abs}\right)^{[n]}, \left(\widehat{\mathcal{T}_1}_s^{abs}\right)^{[n]}, \left(\widehat{\mathcal{M}_2}_s^{abs}\right)^{[n]}, \left(\widehat{\mathcal{T}_2}_s^{abs}\right)^{[n]}$ for each $n$-individual brain hypergraph;
 - **Background_Scripts**: a folder that consists of auxiliary Python modules related to (H-)GSP tools, clustering algorithms and plotting functions;
 - **Schaefer_100Parcels_Atlas**: a folder that consists of spacial coordinates, region names/colors, subnet names/colors, etc, of the 116 regions-of-interest (ROIs) of the brain (based on the Schaefer's brain atlas https://doi.org/10.1093/cercor/bhx179), the averaged correlation matrix $\mathbf{A}$ (given by the average of $\mathbf{A}^{[0,1,\cdots,1977]}$), and the averaged zscored hyperedges weights of the triplets using *interaction information* ($II$) and *total correlation* ($TC$) metrics;
