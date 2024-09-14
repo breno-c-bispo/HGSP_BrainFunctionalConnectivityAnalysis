@@ -14,7 +14,6 @@ plt.rcParams["font.family"] = "Times"
 # Scikit-learn libraries
 from sklearn.metrics import silhouette_samples
 
-
 from itertools import combinations
 from scipy import stats
 
@@ -24,7 +23,22 @@ from utils import remove_outliers_zscore, get_binarized_matrix, get_modularity
 
 
 def plot_multiple_stem(list_df, xlabels, ylabels, ncols, xticks=None, yticks=None, xlims=None, ylims=None, markersize=2, figsize=(15, 5), fig_name=None):
-    
+    """Plot multiple charts from 'list_df'.
+
+        Parameters
+        ----------
+
+        list_df: Pandas Dataframe
+
+        xlabels: list of strings
+
+        ylabels: list of strings
+
+        ncols: integer
+
+        fig_name: string
+    """
+
     num_subplots = len(list_df)
     nrows = (num_subplots + ncols - 1) // ncols
     fig, axes = plt.subplots(nrows=nrows, ncols=ncols, figsize=figsize)
@@ -55,6 +69,24 @@ def plot_multiple_stem(list_df, xlabels, ylabels, ncols, xticks=None, yticks=Non
     return
 
 def plot_models_silhouette_diagrams(list_kclusters, list_embeddings, list_kmeans_models, nodes_color=[], name_dataset='', fig_size=None, fig_dir=None):
+    """Plot the silhoueete diagrams of K-Means models 'list_kmeans_models'
+
+        Paramters
+        ---------
+
+        list_kclusters: list of integer
+                    list of K clusters for which the silhouette diagram is to be plotted
+        
+        list_embeddings: list of numpy array matrix
+                    list of the corresponding embedding
+
+        list_kmeans_models: list of K-Means objects
+
+        nodes_color: list of string
+                    list of nodes color
+    
+    """
+    
     dict_node_labels = {}
     dict_embeddings = {}
     for idx, kmeans_model in enumerate(list_kmeans_models):
@@ -69,8 +101,7 @@ def plot_models_silhouette_diagrams(list_kclusters, list_embeddings, list_kmeans
     if fig_size != None:
         fig_width, fig_height = fig_size[0], fig_size[1]
     fig, axes = plt.subplots(nrows, ncols, figsize=(fig_width, fig_height), gridspec_kw={'hspace': 0.25})
-    
-    
+        
     percent = {}
     for i, ax in enumerate(axes.flat):
         if i < num_subplots:
@@ -109,7 +140,7 @@ def plot_models_silhouette_diagrams(list_kclusters, list_embeddings, list_kmeans
             percent[list_kclusters[i]] = 100*len(df_sc[df_sc['sc'] > silhouette_avg])/len(df_sc)
             
             ax.set_title(f"Silhouette diagrams {name_dataset}, $K={list_kclusters[i]}$, $SC={silhouette_avg:.3f}$", fontsize=14)
-            #ax.set_xlabel(f"Silhouette coefficients $\eta$ - ${percent[list_kclusters[i]]:.1f}\% > SC$", fontsize=14)
+            ax.set_xlabel(f"Silhouette coefficients $\eta$", fontsize=14)
             ax.set_ylabel(r"Cluster labels", fontsize=14)
             # The vertical line for average silhouette score of all the values
             ax.axvline(x=silhouette_avg, color="black", linestyle="--")
@@ -130,6 +161,22 @@ def plot_models_silhouette_diagrams(list_kclusters, list_embeddings, list_kmeans
     return
 
 def plot_pie_clusters(models_list, k_cluster, nodes_color, nodes_subnet, fig_title='', file_dir=None):
+    """Plot a pie chart of the nodes distribution among the clusters
+
+        Parameters
+        ----------
+
+        models_list: list of K-Means objects
+
+        k_cluster: integer
+                model with K cluster to be plotted
+        
+        nodes_color: list of string
+                    list of nodes color
+        
+        nodes_subnet: list os string
+                    list of subnets where each node belongs
+    """
 
     for idx in range(len(models_list)):
         if len(set(models_list[idx].labels_)) == k_cluster:
@@ -188,7 +235,18 @@ def plot_pie_clusters(models_list, k_cluster, nodes_color, nodes_subnet, fig_tit
     fig.show()
     return
 
-def plot_mean_tubal_scalars(As, k_indexes, title='', n_largest=1, step_xticks=2, figsize=(10,4)):
+def plot_mean_tubal_scalars(As, k_indexes, title='', step_xticks=2, figsize=(10,4)):
+    """Plot the 'k_indexes' of the mean absolute value of tubal scalars of the 3-order tensor 'As'
+
+        Parameters
+        ----------
+
+        As: numpy array tensor
+
+        k_indexes: list of integer
+
+        title: string
+    """
 
     N0,N1,N2 = As.shape
     l = list(combinations(range(N0), 2))
@@ -210,6 +268,16 @@ def plot_mean_tubal_scalars(As, k_indexes, title='', n_largest=1, step_xticks=2,
     return
 
 def plot_correlation_scatters(df, z_score_thr=2, figsize=(15,5), fig_dir=None):
+    """Plot of the correlation scatters of the peak peak values between males and females
+        in each resting-state scan at k=0,4 for II and TC metrics.
+
+        Parameters
+        ----------
+
+        df: Pandas Dataframe
+
+        z_score_thr: integer
+    """
 
     ncols = 2
     nrows = 1
@@ -259,6 +327,15 @@ def plot_correlation_scatters(df, z_score_thr=2, figsize=(15,5), fig_dir=None):
     return
 
 def plot_metrics_distribution(df, zscore_thr=2, figsize=(15,6), fig_dir=None):
+    """Plot the distribution of the peak values between males and females in each resting-state scan at k=0,4 for II and TC metrics
+
+        Parameters
+        ----------
+
+        df: Pandas Dataframe
+
+        z_score_thr: integer
+    """
 
     fig, ax = plt.subplots(nrows=2,ncols=2, figsize=figsize, gridspec_kw={'hspace': 0.5})
     list_metrics = ['peak_ii_0', 'peak_tc_0', 'peak_ii_4', 'peak_tc_4']
@@ -296,6 +373,21 @@ def plot_metrics_distribution(df, zscore_thr=2, figsize=(15,6), fig_dir=None):
     return    
 
 def get_adjacency_matrix_heatmap(A, node_labels, title, axes):
+    """ Return a axes with the heatmap of the matrix A
+
+        Paramters
+        ---------
+
+        A: numpy array matrix
+
+        node_labels: list of strings
+
+        title: string
+
+        axes: matplotlib Axes object
+    
+    """
+    
     matrix = A.copy()
     np.fill_diagonal(matrix,np.nan)
     Pdmatrix = pd.DataFrame(matrix)
@@ -309,7 +401,28 @@ def get_adjacency_matrix_heatmap(A, node_labels, title, axes):
     return axes
 
 def generate_binarized_adjacency_matrices(matrix, density, subnet_labels, atlas_cluster_labels, sc_cluster_labels, danmf_cluster_labels, matrix_name='', fig_name=None, plot_show=False):
+    """Compute modularity of a network structured by the 'matrix' with specific 'density' according to the cluster labels from the
+        spectral clustering model 'sc_cluster_labels' and DANMF clustering model 'danmf_cluster_labels'.
 
+        Parameters
+        ----------
+
+        matrix: numpy array matrix
+
+        density: float
+
+        subnet_labels: list of string
+
+        atlas_cluster_labels: list of integer
+
+        sc_cluster_labels: list of integer
+
+        danmf_cluster_labels: list of integer
+
+        matrix_name: string
+    
+    """
+        
     matrix_bin = get_binarized_matrix(matrix, density)
     fig, ax = plt.subplots(nrows=3, ncols=1, figsize=(20,60))
 
@@ -317,13 +430,13 @@ def generate_binarized_adjacency_matrices(matrix, density, subnet_labels, atlas_
     node_labels = atlas_cluster_labels.astype(str) + '$_{' + subnet_labels + '}$'
     ax[0] = get_adjacency_matrix_heatmap(matrix_bin, node_labels.to_list(), title, ax[0])
 
-    mod = get_modularity(matrix_bin, sc_cluster_labels)
-    title = f'Adjacency matrix of {matrix_name} - Density = {int(density*100)}\%\nClustered and reordered based on the Spectral clustering outcome\nModularity$\:={mod:.3f}$'
+    mod_sc = get_modularity(matrix_bin, sc_cluster_labels)
+    title = f'Adjacency matrix of {matrix_name} - Density = {int(density*100)}\%\nClustered and reordered based on the Spectral clustering outcome\nModularity$\:={mod_sc:.3f}$'
     node_labels = sc_cluster_labels.astype(str) + '$_{' + subnet_labels + '}$'
     ax[1] = get_adjacency_matrix_heatmap(matrix_bin, node_labels.to_list(), title, ax[1])
 
-    mod = get_modularity(matrix_bin, danmf_cluster_labels)
-    title = f'Adjacency matrix of {matrix_name} - Density = {int(density*100)}\%\nClustered and reordered based on the DANMF-based clustering outcome\nModularity$\:={mod:.3f}$'
+    mod_danmf = get_modularity(matrix_bin, danmf_cluster_labels)
+    title = f'Adjacency matrix of {matrix_name} - Density = {int(density*100)}\%\nClustered and reordered based on the DANMF-based clustering outcome\nModularity$\:={mod_danmf:.3f}$'
     node_labels = danmf_cluster_labels.astype(str) + '$_{' + subnet_labels + '}$'
     ax[2] = get_adjacency_matrix_heatmap(matrix_bin, node_labels.to_list(), title, ax[2])
 
@@ -331,4 +444,4 @@ def generate_binarized_adjacency_matrices(matrix, density, subnet_labels, atlas_
         plt.savefig(fig_name)
     if plot_show:
         plt.show()
-    return
+    return mod_sc, mod_danmf

@@ -9,7 +9,7 @@
 
 __author__ = "Breno Bispo"
 __contact__ = "breno.bispo@ufpe.br"
-__date__ = "2020/10/15"
+__date__ = "2024/09/12"
 __status__ = "Production"
 
 
@@ -258,40 +258,3 @@ def laplacian_tensor(A):
     
     """
     return degree_tensor(A) - A
-
-
-def laplacian(A):
-    """Return the laplacian matrix of 'A'
-
-    Parameters
-    ----------
-    A: numpy array matrix
-    
-    """
-    return np.diag(np.sum(A, axis=0)) - A
-
-def normalize_matrix(A, sym=True):
-    """Return the normalized matrix version of the adjacency matrix 'A' (if 'laplacian' is False),
-    or the normalized matrix version of the laplacian matrix of 'A' (if 'laplacian' is True).
-
-    Parameters
-    ----------
-    A: numpy array matrix
-
-    sym: boolean
-        If True, the function returns the symmetrically normalized version of 'A'.
-        Otherwise, it returns the randow walk normalized version of 'A'.
-    
-    """
-
-    A = np.squeeze(A)
-    vector_degree = np.sum(A, axis=0)
-    D_inv = np.diag(1/vector_degree)
-
-    if sym:
-        D_inv_sqrt = np.sqrt(D_inv)
-        A_norm = D_inv_sqrt @ A @ D_inv_sqrt
-    else:
-        A_norm = D_inv @ A
-    
-    return A_norm

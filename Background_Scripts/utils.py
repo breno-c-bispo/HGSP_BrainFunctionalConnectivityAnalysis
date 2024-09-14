@@ -52,6 +52,24 @@ def pre_processing_data(raw_data, n_features, scaling=True, normalizing=True):
     return X
     
 def graph_spectrum_components(A, shift_operator='laplacian', norm_type='sym', eig_type=None):
+    """Compute the eigenvalues/eigenvectors of the adjacency matrix A or its Laplacian
+
+        Parameters
+        ---------
+        A: numpy array matrix
+
+        shift_operator: string ('adjacency' or 'laplacian')
+                        if equals to 'adjacency' it returns the eigendecomposition of the (normmalized)
+                        adjacency matrix A. If equals to 'laplacian' it returns the eigendecomposition of the (normmalized)
+                        Laplacian matrix of A
+        norm_type: string ('rw' or 'sym' or None)
+                    if 'rw', the function returns the eigendecomposition of the random normalized version of A (or its Laplacian).
+                    if 'sym', the function returns the eigendecomposition of the symmetrically normalized version of A (or its Laplacian).
+                    if None, the function returns the eigendecomposition of A (or its Laplacian).
+        eig_type: string ('U' or 'L' or None)
+                    If A (or Laplacian) is real symmetric matrix, specifies whether the eigendecomposition is done with the lower triangular part of a (‘L’) or the upper triangular part (‘U’).
+                    If None, it returns the eigendecomposition of ordinary matrix A (or Laplacian).
+    """
     
     A = np.squeeze(A)
 
@@ -95,6 +113,39 @@ def graph_spectrum_components(A, shift_operator='laplacian', norm_type='sym', ei
         
 
 def graph_spectral_clustering(A, k_clusters, shift_operator='laplacian', norm_type='sym', eig_type=None, scaling=True, normalizing=True, n_init=50):
+    """Returns 'k_clusters' spectral clustering K-Means models 'kmeans_models' using the (normalized) adjacency matrix A (or its Laplacian),
+        list of silhouette scores of the 'kmeans_models' and list of embeddings 'embeddings'.
+
+        Parameters
+        ----------
+        A: numpy array matrix
+
+        k_clusters: list of integer
+                    list of K clusters for which the function computes the spectral clustering models
+        
+        shift_operator: string ('adjacency' or 'laplacian')
+                        if equals to 'adjacency' it computes the spectral clustering models of the (normmalized)
+                        adjacency matrix A. If equals to 'laplacian' it computes the spectral clustering models of the (normmalized)
+                        Laplacian matrix of A
+        
+        norm_type: string ('rw' or 'sym' or None)
+                    if 'rw', the function computes the spectral clustering models of the random normalized version of A (or its Laplacian).
+                    if 'sym', the function computes the spectral clustering models of the symmetrically normalized version of A (or its Laplacian).
+                    if None, the function computes the spectral clustering models of A (or its Laplacian).
+        
+        eig_type: string ('U' or 'L' or None)
+                    if A (or Laplacian) is real symmetric matrix, specifies whether the eigendecomposition is done with the lower triangular part of a (‘L’) or the upper triangular part (‘U’).
+                    If None, it returns the eigendecomposition of ordinary matrix A (or Laplacian).
+        
+        scaling: boolean
+                if True, standardize features of the embedding of A (or its Laplacian).
+        
+        normalizing: boolean
+                if True, normalize features of the embedding of A (or its Laplacian).
+
+        n_init: integer
+                number of times the K-Means algorithm is run with different centroid seeds.
+    """
     
     kmeans_models = []
     silhouette_score_models = []
@@ -111,9 +162,36 @@ def graph_spectral_clustering(A, k_clusters, shift_operator='laplacian', norm_ty
     return kmeans_models, silhouette_score_models, embeddings
 
 def danmf_clustering(A, k_clusters, layers, scaling=True, normalizing=True, pre_iterations=100, iterations=100, lamb=0.01, n_init=50):
+    """Returns 'k_clusters' DANMF-based K-Means models 'kmeans_models' using the (normalized) adjacency matrix A, list of silhouette
+        scores of the 'kmeans_models' and list of embeddings 'embeddings'.
+
+        Parameters
+        ----------
+        A: numpy array matrix
+
+        k_clusters: list of integer
+                    list of K clusters for which the function computes the DANMF clustering models
+        
+        scaling: boolean
+                if True, standardize features of the embedding of A (or its Laplacian).
+        
+        normalizing: boolean
+                if True, normalize features of the embedding of A (or its Laplacian).
+
+        pre_iterations: integer
+                    number of pre-training epochs of the DANMF algorithm.
+
+        iterations: integer
+                    number of DANMF training epochs of the DANMF algorithm.
+
+        lamb: float
+                regularization parameter of the DANMF algorithm.
+        
+        n_init: integer
+                number of times the K-Means algorithm is run with different centroid seeds.
+    """
     
     G = nx.from_numpy_matrix(A)
-
     kmeans_models = []
     silhouette_score_models = []
     embeddings = []
@@ -134,6 +212,9 @@ def danmf_clustering(A, k_clusters, layers, scaling=True, normalizing=True, pre_
     return kmeans_models, silhouette_score_models, embeddings
 
 def build_adjacency_tensors(file):
+    """Generate the 3-order adjacency tensors 'A_tensor_ii' and 'A_tensor_tc' from the 'file',
+        containing the hyperedges weights of the 3-uniform hypergraphs
+    """
     
     M = 3
     N = 116
@@ -152,7 +233,10 @@ def build_adjacency_tensors(file):
     
     return A_tensor_ii, A_tensor_tc
 
-def get_simmetrized_ttensors(file):
+def get_symmetrized_ttensors(file):
+    """Generate the 3-order adjacency tensors 'A_tensor_ii' and 'A_tensor_tc' from the 'file',
+        symmetrize the tensors and create the ttensors objects 'As_ii' and 'As_tc'.
+    """
 
     A_tensor_ii, A_tensor_tc = build_adjacency_tensors(file)
 
@@ -164,7 +248,15 @@ def get_simmetrized_ttensors(file):
     return As_ii, As_tc
 
 def remove_outliers_zscore(df,column,threshold=2):
-    ''' Detection '''
+    """Remove outliers from the 'column' of the Pandas Dataframe 'df' using z-score threshold
+        and return the corresponding collumn without outliers.
+
+        Parameters
+        ----------
+        df: Pandas Dataframe
+
+        column: string
+    """
     x = df[column].to_list()
     x = np.array(x).flatten()
     z = np.abs(stats.zscore(x))
@@ -173,22 +265,84 @@ def remove_outliers_zscore(df,column,threshold=2):
     return df.iloc[inliers]
 
 def get_clusters_label(list_kmeans_models, kcluster):
+    """Return the cluster labels from the list of K-Means models 'list_kmeans_models'
+        which has 'kcluster' clusters.
+
+        Parameters
+        ----------
+        list_kmeans_models: list of K-Means objects
+
+        kcluster: integer
+    """
     for model in list_kmeans_models:
         if (len(set(model.labels_)) == kcluster):
             return model.labels_
     raise ValueError("Model not found!")
 
 def get_binarized_matrix(matrix, density):
+    """Binarize a matrix according to the desired density.
+
+        Parameters
+        ----------
+        matrix: numpy array matrix
+
+        density: float
+    """
     G = G_den(matrix, density, verbose=False)
     matrix_bin = nx.to_numpy_array(G)
     matrix_bin[matrix_bin > 0] = 1
     return matrix_bin
 
 def get_modularity(matrix, cluster_labels):
+    """Return the modularity of a network according to the cluster label
+
+        Parameters
+        ----------
+        matrix: numpy array matrix
+
+        cluster_labels: list of integer
+                cluster label of each node of the network
+    """
     G_binarized = nx.from_numpy_matrix(matrix)
     df = pd.DataFrame({'node': range(len(cluster_labels)), 'cluster_label': cluster_labels})
     partitions = []
     for c in list(set(cluster_labels)):
         partitions.append(set(df.loc[df['cluster_label']==c]['node'].values))
     return nx.community.modularity(G_binarized, partitions)
+
+def laplacian(A):
+    """Return the laplacian matrix of 'A'
+
+    Parameters
+    ----------
+    A: numpy array matrix
+    
+    """
+    return np.diag(np.sum(A, axis=0)) - A
+
+def normalize_matrix(A, sym=True):
+    """Return the normalized matrix version of the adjacency matrix 'A' (if 'laplacian' is False),
+    or the normalized matrix version of the laplacian matrix of 'A' (if 'laplacian' is True).
+
+    Parameters
+    ----------
+    A: numpy array matrix
+
+    sym: boolean
+        If True, the function returns the symmetrically normalized version of 'A'.
+        Otherwise, it returns the randow walk normalized version of 'A'.
+    
+    """
+
+    A = np.squeeze(A)
+    vector_degree = np.sum(A, axis=0)
+    D_inv = np.diag(1/vector_degree)
+
+    if sym:
+        D_inv_sqrt = np.sqrt(D_inv)
+        A_norm = D_inv_sqrt @ A @ D_inv_sqrt
+    else:
+        A_norm = D_inv @ A
+    
+    return A_norm
 

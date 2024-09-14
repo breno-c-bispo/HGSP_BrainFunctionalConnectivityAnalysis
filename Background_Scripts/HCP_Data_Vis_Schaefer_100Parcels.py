@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-""" This is the main code for Data Visualization of Simplicial Complexes
-
+""" Costumized code from the https://github.com/multinetlab-amsterdam/network_TDA_tutorial.git
+    for 3D brain visualization
 """
 
-__author__ = "Fernando Nobrega"
-__contact__ = "f.nobregasantos@amsterdamumc.nl"
-__date__ = "2020/10/15"
+__author__ = "Fernando Nobrega & Breno Bispo"
+__contact__ = "f.a.nobregasantos@uva.nl & breno.bispo@ufpe.br"
+__date__ = "2023/09/12"
 __status__ = "Production"
 
 
@@ -28,9 +28,7 @@ import plotly.graph_objs as go # version 4.6.0
 import matplotlib # version 3.3.2
 import numpy as np # version 1.18.5
 import networkx as nx # version 2.4
-import community # version 0.13
 import meshio # version 4.0.16
-import community.community_louvain
 from plotly.offline import iplot, init_notebook_mode
 import plotly.express as px # version 4.6.0 
 
