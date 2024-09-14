@@ -45,3 +45,5 @@ The essential core packages are depicted below. The Anaconda environment setup f
      - pandas    : 1.1.3
 
 ### <a id='acknowledgements'></a>Acknowledgements:
+
+This work was supported in part by Conselho Nacional de Desenvolvimento Científico e Tecnológico (CNPq) under grants 140151/2022-2, 442238/2023-1, 312935/2023-4 and 405903/2023-5, Coordenação de Aperfeiçoamento de Pessoal de Nível Superior (CAPES) under grant 88881.311848/2018-01, 88887.899136/2023-00, and Fundação de Amparo à Ciência e Tecnologia do Estado de Pernambuco (FACEPE) under grant APQ-1226-3.04/22.
