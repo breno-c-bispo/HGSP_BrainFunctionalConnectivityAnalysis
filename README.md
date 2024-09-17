@@ -6,8 +6,8 @@ Contact information: <juliano.lima@ufpe.br> or <f.a.nobregasantos@uva.nl>
 
 ## Table of contents
 1. [General information](#general_information)
-2. [Requirements](#requirements)
-3. [Content](#content)
+2. [Content](#content)
+3. [Requirements](#requirements)
 4. [Citation](#citation)
 5. [Acknowledgements](#acknowledgements)
 
