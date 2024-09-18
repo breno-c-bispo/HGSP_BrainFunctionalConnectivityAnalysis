@@ -14,7 +14,7 @@ Contact information: <breno.bispo@ufpe.br> or <juliano.lima@ufpe.br> or <f.a.nob
 
 ### <a id='general_information'></a> General information:
 
- The primary purpose of this project is to reproduce the results depicted in the papers entitled **Emergence of Higher-Order Functional Brain Connectivity with Hypergraph Signal Processing**, *EUSIPCO 2024*, and **From Pairwise to Higher-order Clustering: A (Hyper-)graph Signal Processing Approach on Brain Functional Connectivity Analysis** *IEEE Transactions on Medical Imaging*.
+ The primary purpose of this project is to reproduce the results depicted in the papers entitled **Emergence of Higher-Order Functional Brain Connectivity with Hypergraph Signal Processing**, *EUSIPCO 2024*, and **From Pairwise to Higher-order Clustering: A (Hyper-)graph Signal Processing Approach on Brain Functional Connectivity Analysis**, *IEEE Transactions on Medical Imaging*.
 
 ### <a id='content'></a> Content:
 
