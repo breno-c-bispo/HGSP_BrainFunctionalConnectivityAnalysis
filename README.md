@@ -28,10 +28,10 @@ This folder consist in the following folders / files:
 - **Figures**: a folder that consists the following subfolders:
   - *Emergence_of_Higher-Order_Functional_Brain_Connectivity*: contains the figures of the paper *Emergence of Higher-Order Functional Brain Connectivity with Hypergraph Signal Processing*
   - *From_Pairwise_to_HIgher-order_Clustering*: it contains the following subfolders:
-    - brain_hypergraph_3D_models: a folder that contains 3D representations of the brain graph $\mathcal{G}$, and the brain hypergraphs $\mathcal{H}_{II}$ and $\mathcal{H}_{TC}$;
-    - clustering_outcomes: a folder that contains the clustering outcomes from the brain graph $\mathcal{G}$, and brain hypergraph modes $\mathcal{G}^{(0)}_{II}$, $\mathcal{G}^{(0)}_{TC}$, $\mathcal{G}^{(4)}_{II}$, $\mathcal{G}^{(4)}_{TC}$;
-    - binarized_adjacency_matrices: a folder that contains of binarized adjacency matrices of $\mathcal{G}$, $\mathcal{G}^{(k=0,4)}_{II}$, $\mathcal{G}^{(k=0,4)}_{TC}$ (for different values of connection density $D \in \{0\%,5\%,15\%,20\%\}$), with rows and columns ordered based on the clustering outcomes;
-    - null_models: a folder that contains 3D illustrations of brain clusters from the null models of $\mathcal{G}^{(k=0,4)}_{II}$, $\mathcal{G}^{(k=0,4)}_{TC}$. Additionally, it contains heatmaps of the adjacency matrices of the original versions of brain hypergraph modes and their corresponding rewired (null model) counterparts;
+    - brain_hypergraph_3D_models: a folder that contains 3D representations of the brain graph $\mathcal{G}$, and the brain hypergraphs $\mathcal{H}\_{II}$ and $\mathcal{H}\_{TC}$;
+    - clustering_outcomes: a folder that contains the clustering outcomes from the brain graph $\mathcal{G}$, and brain hypergraph modes $\mathcal{G}^{(0)}\_{II}$, $\mathcal{G}^{(0)}\_{TC}$, $\mathcal{G}^{(4)}\_{II}$, $\mathcal{G}^{(4)}\_{TC}$;
+    - binarized_adjacency_matrices: a folder that contains of binarized adjacency matrices of $\mathcal{G}$, $\mathcal{G}^{(k=0,4)}\_{II}$, $\mathcal{G}^{(k=0,4)}\_{TC}$ (for different values of connection density $D \in \{0\%,5\%,15\%,20\%\}$), with rows and columns ordered based on the clustering outcomes;
+    - null_models: a folder that contains 3D illustrations of brain clusters from the null models of $\mathcal{G}^{(k=0,4)}\_{II}$, $\mathcal{G}^{(k=0,4)}\_{TC}$. Additionally, it contains heatmaps of the adjacency matrices of the original versions of brain hypergraph modes and their corresponding rewired (null model) counterparts;
     - brain_signatures: a folder that contains the results from the analysis of brain signatures described in the paper.
 
 ### <a id='requirements'></a> Usage and Requirements:
