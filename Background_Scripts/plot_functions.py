@@ -540,7 +540,7 @@ def plot_correlation_scatters(
                 scatter=True,
             )
             axes[i].set_title(
-                f"$II$: R = {r_prev:.2f} / $p$-value$_{{Bonferroni-corrected}}$ = {p_prev*2:.2g}\n$TC$: R = {r:.2f} / $p$-value$_{{Bonferroni-corrected}}$ = {p*2:.2g}",
+                f"$II$: R = {r_prev:.2f} / $p$-value$_{{Bonferroni-corrected}}$ = {p_prev * 2:.2g}\n$TC$: R = {r:.2f} / $p$-value$_{{Bonferroni-corrected}}$ = {p * 2:.2g}",
                 fontsize=14,
             )
             axes[i].set_xlabel(xlabels[i], fontsize=14)
@@ -648,7 +648,7 @@ def plot_metrics_distribution(
             df_male_rest2_metric[metric], df_female_rest2_metric[metric]
         )
         axes.set_title(
-            f"REST 1: $p$-value$_{{Bonferroni-corrected}}$ = {p_mann_rest1*4:.2g}\nREST 2: $p$-value$_{{Bonferroni-corrected}}$ = {p_mann_rest2*4:.2g}",
+            f"REST 1: $p$-value$_{{Bonferroni-corrected}}$ = {p_mann_rest1 * 4:.2g}\nREST 2: $p$-value$_{{Bonferroni-corrected}}$ = {p_mann_rest2 * 4:.2g}",
             fontsize=16,
         )
         axes.set_ylabel(ylabels[idx], fontsize=16)
@@ -670,6 +670,7 @@ def plot_metrics_distribution(
 def _grid_communities(communities):
     """
     Generate boundaries of `communities`.
+    Function based on the Netneurotools package (https://github.com/netneurolab/netneurotools.git).
 
     Parameters
     ----------
@@ -700,6 +701,7 @@ def _grid_communities(communities):
 def _sort_communities(consensus, communities):
     """
     Sort `communities` in `consensus` according to strength.
+    Function based on the Netneurotools package (https://github.com/netneurolab/netneurotools.git).
 
     Parameters
     ----------
@@ -728,7 +730,7 @@ def _sort_communities(consensus, communities):
     return inds
 
 
-def plot_heatmap(
+def plot_heatmap_communities(
     data,
     communities,
     *,
@@ -751,6 +753,7 @@ def plot_heatmap(
 ):
     """
     Plot `data` as heatmap with borders drawn around `communities`.
+    Function based on the Netneurotools package (https://github.com/netneurolab/netneurotools.git)
 
     Parameters
     ----------
@@ -820,12 +823,14 @@ def plot_heatmap(
         **kwargs,
     )
     column_bar = ax.collections[0].colorbar
-    column_bar.ax.tick_params(labelsize=18)
+    column_bar.ax.tick_params(labelsize=30)
 
     ax.set(xlim=(0, plot_data.shape[1]), ylim=(0, plot_data.shape[0]))
+    ax.set_xlabel("ROI's cluster label$_{Subnetwork}$", fontsize=32)
+    ax.set_ylabel("ROI's cluster label$_{Subnetwork}$", fontsize=32)
 
     if title is not None:
-        ax.set_title(title, fontsize=22)
+        ax.set_title(title, fontsize=34)
 
     for side in ["top", "right", "left", "bottom"]:
         ax.spines[side].set_visible(False)
@@ -860,7 +865,7 @@ def plot_heatmap(
             # make sure number of labels match the number of ticks
             if len(tickloc) != len(xlabels):
                 raise ValueError(
-                    "Number of labels do not match the number of " "unique communities."
+                    "Number of labels do not match the number of unique communities."
                 )
             else:
                 ax.set_xticks(tickloc)
@@ -870,7 +875,7 @@ def plot_heatmap(
             # make sure number of labels match the number of ticks
             if len(tickloc) != len(ylabels):
                 raise ValueError(
-                    "Number of labels do not match the number of " "unique communities."
+                    "Number of labels do not match the number of unique communities."
                 )
             else:
                 ax.set_yticks(tickloc)
@@ -925,11 +930,11 @@ def generate_binarized_adjacency_matrices(
     matrix_bin = G_den(matrix, density)
     matrix_bin = nx.to_numpy_array(matrix_bin)
     matrix_bin[matrix_bin > 0] = 1
-    fig, ax = plt.subplots(nrows=3, ncols=1, figsize=(20, 60))
+    fig, ax = plt.subplots(nrows=3, ncols=1, figsize=(20, 45))
 
-    title = f"Adjacency matrix of {matrix_name} - Density = {int(density*100)}%\nReordered based on the Schaefer's atlas"
+    title = f"Adjacency matrix of {matrix_name} - Density = {int(density * 100)}\%\nReordered based on the Schaefer's atlas"
     node_labels = atlas_cluster_labels.astype(str) + "$_{" + subnet_labels + "}$"
-    ax[0] = plot_heatmap(
+    ax[0] = plot_heatmap_communities(
         matrix_bin,
         atlas_cluster_labels,
         xticklabels=node_labels.to_list(),
@@ -941,9 +946,9 @@ def generate_binarized_adjacency_matrices(
     )
 
     mod_sc = get_modularity(matrix_bin, sc_cluster_labels)
-    title = f"Adjacency matrix of {matrix_name} - Density = {int(density*100)}%\nClustered and reordered based on the Spectral clustering outcome\nModularity$\:={mod_sc:.3f}$"
+    title = f"Adjacency matrix of {matrix_name} - Density = {int(density * 100)}\%\nClustered and reordered based on the spectral clustering outcome\nModularity$\:={mod_sc:.3f}$"
     node_labels = sc_cluster_labels.astype(str) + "$_{" + subnet_labels + "}$"
-    plot_heatmap(
+    plot_heatmap_communities(
         matrix_bin,
         sc_cluster_labels,
         xticklabels=node_labels.to_list(),
@@ -955,9 +960,9 @@ def generate_binarized_adjacency_matrices(
     )
 
     mod_danmf = get_modularity(matrix_bin, danmf_cluster_labels)
-    title = f"Adjacency matrix of {matrix_name} - Density = {int(density*100)}%\nClustered and reordered based on the DANMF-based clustering outcome\nModularity$\:={mod_danmf:.3f}$"
+    title = f"Adjacency matrix of {matrix_name} - Density = {int(density * 100)}\%\nClustered and reordered based on the DANMF-based clustering outcome\nModularity$\:={mod_danmf:.3f}$"
     node_labels = danmf_cluster_labels.astype(str) + "$_{" + subnet_labels + "}$"
-    plot_heatmap(
+    plot_heatmap_communities(
         matrix_bin,
         danmf_cluster_labels,
         xticklabels=node_labels.to_list(),
@@ -967,7 +972,7 @@ def generate_binarized_adjacency_matrices(
         ax=ax[2],
         title=title,
     )
-
+    plt.tight_layout()
     if fig_name != None:
         plt.savefig(fig_name)
     if plot_show:
@@ -1003,17 +1008,19 @@ def plot_edge_weights_and_node_degrees_distributions(
             ax=axes[i, 0],
             kde=True,
         )
-        axes[i, 0].set_title(f"Edge weight distribution of {titles[i]}")
-        axes[i, 0].set_xlabel("Edge Weight")
-        axes[i, 0].set_ylabel("Frequency")
+        axes[i, 0].set_title(f"Edge weight distribution of {titles[i]}", fontsize=20)
+        axes[i, 0].set_xlabel("Edge Weight", fontsize=16)
+        axes[i, 0].set_ylabel("Frequency", fontsize=16)
+        axes[i, 0].tick_params(axis="both", which="major", labelsize=14)
 
         # Plot node degree distribution
         sns.histplot(
             np.sum(matrix, axis=1), bins=50, color="red", ax=axes[i, 1], kde=True
         )
-        axes[i, 1].set_title(f"Node degree distribution of {titles[i]}")
-        axes[i, 1].set_xlabel("Node Degree")
-        axes[i, 1].set_ylabel("Frequency")
+        axes[i, 1].set_title(f"Node degree distribution of {titles[i]}", fontsize=20)
+        axes[i, 1].set_xlabel("Node Degree", fontsize=16)
+        axes[i, 1].set_ylabel("Frequency", fontsize=16)
+        axes[i, 1].tick_params(axis="both", which="major", labelsize=14)
 
     plt.tight_layout()
     if fig_dir is not None:
@@ -1025,3 +1032,41 @@ def plot_edge_weights_and_node_degrees_distributions(
         plt.close()
 
     return
+
+
+def plot_heatmaps(list_matrix, titles, ax=None, figsize=(20, 15), cmap="viridis"):
+    """
+    Plot heatmaps of the adjacency matrices.
+
+    Parameters:
+    - list_matrix: list of numpy.ndarray
+        List of adjacency matrices.
+    - titles: list of str
+        List of titles for each heatmap.
+    - figsize: tuple of int, optional
+        Size of the figure. Default is (20, 20).
+    - cmap: str, optional
+        Colormap to use for the heatmaps. Default is 'viridis'.
+    - plot_show: bool, optional
+        If True, the plot is shown. Otherwise, the plot is saved. Default is True.
+    """
+    n = len(list_matrix)
+
+    if ax is None:
+        fig, ax = plt.subplots(nrows=n, ncols=1, figsize=figsize)
+
+    if n == 1:
+        ax = [ax]
+
+    for i, (matrix, title) in enumerate(zip(list_matrix, titles)):
+        m = matrix.copy()
+        np.fill_diagonal(m, np.nan)
+        sns.heatmap(m, ax=ax[i], cmap=cmap)
+        ax[i].set_title(title, fontsize=44)
+        ax[i].set_xlabel("ROI", fontsize=38)
+        ax[i].set_ylabel("ROI", fontsize=38)
+        cbar = ax[i].collections[0].colorbar
+        cbar.ax.tick_params(labelsize=34)
+        ax[i].tick_params(axis="both", which="major", labelsize=12)
+
+    return ax
