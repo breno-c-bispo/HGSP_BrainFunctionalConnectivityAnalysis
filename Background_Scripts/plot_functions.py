@@ -541,11 +541,11 @@ def plot_correlation_scatters(
             )
             axes[i].set_title(
                 f"$II$: R = {r_prev:.2f} / $p$-value$_{{Bonferroni-corrected}}$ = {p_prev * 2:.2g}\n$TC$: R = {r:.2f} / $p$-value$_{{Bonferroni-corrected}}$ = {p * 2:.2g}",
-                fontsize=14,
+                fontsize=18,
             )
-            axes[i].set_xlabel(xlabels[i], fontsize=14)
-            axes[i].set_ylabel(ylabels[i], fontsize=14)
-            axes[i].legend(fontsize=12)
+            axes[i].set_xlabel(xlabels[i], fontsize=18)
+            axes[i].set_ylabel(ylabels[i], fontsize=18)
+            axes[i].legend(fontsize=14)
             axes[i].tick_params(axis="both", which="major", labelsize=14)
             i += 1
 
@@ -649,12 +649,12 @@ def plot_metrics_distribution(
         )
         axes.set_title(
             f"REST 1: $p$-value$_{{Bonferroni-corrected}}$ = {p_mann_rest1 * 4:.2g}\nREST 2: $p$-value$_{{Bonferroni-corrected}}$ = {p_mann_rest2 * 4:.2g}",
-            fontsize=16,
+            fontsize=20,
         )
-        axes.set_ylabel(ylabels[idx], fontsize=16)
-        axes.set_xlabel("rs-fMRI recording (REST)", fontsize=16)
-        axes.legend(title="Sex", fontsize=12, title_fontsize=12)
-        axes.tick_params(axis="both", which="major", labelsize=12)
+        axes.set_ylabel(ylabels[idx], fontsize=18)
+        axes.set_xlabel("rs-fMRI recording (REST)", fontsize=18)
+        axes.legend(title="Sex", fontsize=12, title_fontsize=14)
+        axes.tick_params(axis="both", which="major", labelsize=14)
 
     if fig_dir != None:
         fig.savefig(fig_dir)

@@ -748,10 +748,12 @@ def nodes_cliques_participation(cliques_list, k, df_atlas, node_feature_range=(1
         for node in clique:
             node_score[node] += 1
 
-    if node_feature_range == None:
-        return node_score
-
-    return minmax_scale(node_score, node_feature_range)
+    if node_feature_range != None:
+        node_score = np.array(node_score)
+        non_zero_scores = node_score[node_score > 0]
+        rescaled_scores = minmax_scale(non_zero_scores, node_feature_range)
+        node_score[node_score > 0] = rescaled_scores
+    return node_score
 
 
 def Plot_Brain_Interactions(
