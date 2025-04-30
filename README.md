@@ -7,9 +7,10 @@ Contact information: <breno.bispo@ufpe.br> or <juliano.lima@ufpe.br> or <f.a.nob
 ## Table of contents
 1. [General information](#general_information)
 2. [Content](#content)
-3. [Requirements](#requirements)
-4. [Citation](#citation)
-5. [Acknowledgements](#acknowledgements)
+3. [Data availability](#data)
+4. [Requirements](#requirements)
+5. [Citation](#citation)
+6. [Acknowledgements](#acknowledgements)
 
 
 ### <a id='general_information'></a> General information:
@@ -33,6 +34,10 @@ This folder consist in the following folders / files:
     - binarized_adjacency_matrices: a folder that contains binarized adjacency matrices of $\mathcal{G}$, $\mathcal{G}^{(k=0,4)}\_{II}$, $\mathcal{G}^{(k=0,4)}\_{TC}$ (for different values of connection density $D \in \\{0\\% ,5\\%,15\\%,20\\%\\}$), with rows and columns ordered based on the clustering outcomes;
     - null_models: a folder that contains 3D illustrations of brain clusters from the null models of $\mathcal{G}^{(k=0,4)}\_{II}$, $\mathcal{G}^{(k=0,4)}\_{TC}$. Additionally, it contains heatmaps of the adjacency matrices of the original versions of brain hypergraph modes and their corresponding rewired (null model) counterparts;
     - brain_signatures: a folder that contains the results from the analysis of brain signatures described in the paper.
+
+### <a id='data'></a> Data availability:
+
+The volunteers' correlation matrices from the rs-fMRI time series are available at https://doi.org/10.5281/zenodo.6770120. Additionally, the hyperedge weights of the triangles, calculated using $II$ and $TC$ metrics, are available at https://doi.org/10.5281/zenodo.14606768.
 
 ### <a id='requirements'></a> Usage and Requirements:
 
