@@ -20,7 +20,7 @@ Contact information: <breno.bispo@ufpe.br> or <juliano.lima@ufpe.br> or <f.a.nob
 
 This folder consist in the following folders / files:
 
-- **hgsp_spectrum_analysis_fmri.ipynb**: a Jupyter Notebook that reproduce the results presented in the paper *Emergence of Higher-Order Functional Brain Connectivity with Hypergraph Signal Processing*, published in EUSIPCO 2024;
+- **hgsp_spectrum_analysis_fmri.ipynb**: a Jupyter Notebook that reproduce the results presented in the paper *Emergence of Higher-Order Functional Brain Connectivity with Hypergraph Signal Processing*, published in EUSIPCO 2024 (DOI: https://doi.org/10.23919/EUSIPCO63174.2024.10715376);
 - **hgsp_clustering_analysis_fmri.ipynb**: a Jupyter Notebook that reproduce the results presented in the paper *From Pairwise to Higher-order Clustering: A (Hyper-)graph Signal Processing Approach on Brain Functional Connectivity Analysis*, submitted on IEEE JBHI;
 - **hgsp_brain_dataset_setup.py**: a script to pre-process the correlation matrices and HOI weights of each rs-fMRI scan. Moreover, it computes the mean individual correlation matrix and the HOI weights;
 - **Background_Scripts**: a folder that consists of auxiliary Python modules related to (Hyper-)Graph Signal Processing tools, clustering algorithms and plotting functions;
