@@ -22,16 +22,16 @@ Contact information: <breno.bispo@ufpe.br> or <juliano.lima@ufpe.br> or <f.a.nob
 This folder consist in the following folders / files:
 
 - **hgsp_spectrum_analysis_fmri.ipynb**: a Jupyter Notebook that reproduce the results presented in the paper *Emergence of Higher-Order Functional Brain Connectivity with Hypergraph Signal Processing*, published in EUSIPCO 2024 (DOI: https://doi.org/10.23919/EUSIPCO63174.2024.10715376);
-- **hgsp_clustering_analysis_fmri.ipynb**: a Jupyter Notebook that reproduce the results presented in the paper *From Pairwise to Higher-order Clustering: A (Hyper-)graph Signal Processing Approach on Brain Functional Connectivity Analysis*, submitted on IEEE JBHI;
+- **hgsp_clustering_analysis_fmri.ipynb**: a Jupyter Notebook that reproduce the results presented in the paper *From Pairwise to Higher-Order Brain Community Detection: A Hypergraph Signal Processing Approach on Brain Functional Connectivity Analysis*, submitted on Computers in Biology and Medicine journal;
 - **hgsp_brain_dataset_setup.py**: a script to pre-process the correlation matrices and HOI weights of each rs-fMRI scan. Moreover, it computes the mean individual correlation matrix and the HOI weights;
 - **Background_Scripts**: a folder that consists of auxiliary Python modules related to (Hyper-)Graph Signal Processing tools, clustering algorithms and plotting functions;
 - **Schaefer_100Parcels_Atlas**: a folder that consists of spacial coordinates, region names/colors, subnet names/colors, etc, of 116 regions-of-interest (ROIs) of the brain (based on the Schaefer's brain atlas https://doi.org/10.1093/cercor/bhx179), the mean individual correlation matrix $\mathbf{A}$ (given by the average of $\mathbf{A}^{[0,1,\cdots,1977]}$), and the mean individual HOI weights using *interaction information* ($II$) and *total correlation* ($TC$) metrics;
 - **Figures**: a folder that consists the following subfolders:
   - *Emergence_of_Higher-Order_Functional_Brain_Connectivity*: contains the figures of the paper *Emergence of Higher-Order Functional Brain Connectivity with Hypergraph Signal Processing*
   - *From_Pairwise_to_HIgher-order_Clustering*: it contains the following subfolders:
-    - brain_hypergraph_3D_models: a folder that contains 3D representations of the brain graph $\mathcal{G}$, and the brain hypergraphs $\mathcal{H}\_{II}$ and $\mathcal{H}\_{TC}$;
-    - clustering_outcomes: a folder that contains the clustering outcomes from the brain graph $\mathcal{G}$, and brain hypergraph modes $\mathcal{G}^{(k=0,4)}\_{II}$, $\mathcal{G}^{(k=0,4)}\_{TC}$;
-    - binarized_adjacency_matrices: a folder that contains binarized adjacency matrices of $\mathcal{G}$, $\mathcal{G}^{(k=0,4)}\_{II}$, $\mathcal{G}^{(k=0,4)}\_{TC}$ (for different values of connection density $D \in \\{0\\% ,5\\%,15\\%,20\\%\\}$), with rows and columns ordered based on the clustering outcomes;
+    - brain_hypergraph_3D_models: a folder that contains 3D representations of the brain graph $\mathcal{G}_P$, and the brain hypergraphs $\mathcal{H}\_{II}$ and $\mathcal{H}\_{TC}$;
+    - clustering_outcomes: a folder that contains the clustering outcomes from the brain graph $\mathcal{G}_P$, and brain hypergraph modes $\mathcal{G}^{(k=0,4)}\_{II}$, $\mathcal{G}^{(k=0,4)}\_{TC}$;
+    - binarized_adjacency_matrices: a folder that contains binarized adjacency matrices of $\mathcal{G}_P$, $\mathcal{G}^{(k=0,4)}\_{II}$, $\mathcal{G}^{(k=0,4)}\_{TC}$ (for different values of connection density $D \in \\{0\\% ,5\\%,15\\%,20\\%\\}$), with rows and columns ordered based on the clustering outcomes;
     - null_models: a folder that contains 3D illustrations of brain clusters from the null models of $\mathcal{G}^{(k=0,4)}\_{II}$, $\mathcal{G}^{(k=0,4)}\_{TC}$. Additionally, it contains heatmaps of the adjacency matrices of the original versions of brain hypergraph modes and their corresponding rewired (null model) counterparts;
     - brain_signatures: a folder that contains the results from the analysis of brain signatures described in the paper.
 
