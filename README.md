@@ -1,4 +1,4 @@
-# Notebooks of the papers entitled "Emergence of Higher-Order Functional Brain Connectivity with Hypergraph Signal Processing" and "From Pairwise to Higher-order Clustering: A (Hyper-)graph Signal Processing Approach on Brain Functional Connectivity Analysis"
+# Notebooks of the papers entitled "Emergence of Higher-Order Functional Brain Connectivity with Hypergraph Signal Processing" and "From Pairwise to Higher-Order Brain Community Detection: A Hypergraph Signal Processing Approach on Brain Functional Connectivity Analysis"
 
 Authors: Breno Bispo, José Neto, Juliano Lima and Fernando Santos 
 
@@ -15,7 +15,7 @@ Contact information: <breno.bispo@ufpe.br> or <juliano.lima@ufpe.br> or <f.a.nob
 
 ### <a id='general_information'></a> General information:
 
- The primary purpose of this project is to reproduce the results depicted in the paper entitled **Emergence of Higher-Order Functional Brain Connectivity with Hypergraph Signal Processing**, published in *32nd European Signal Processing Conference (EUSIPCO 2024)*, and **From Pairwise to Higher-order Clustering: A (Hyper-)graph Signal Processing Approach on Brain Functional Connectivity Analysis**, submitted on *IEEE Journal of Biomedical and Health Informatics (JBHI)*.
+ The primary purpose of this project is to reproduce the results depicted in the paper entitled **Emergence of Higher-Order Functional Brain Connectivity with Hypergraph Signal Processing**, published in *32nd European Signal Processing Conference (EUSIPCO 2024)*, and **From Pairwise to Higher-Order Brain Community Detection: A Hypergraph Signal Processing Approach on Brain Functional Connectivity Analysis**, submitted on *Computers in Biology and Medicine* journal.
 
 ### <a id='content'></a> Content:
 
