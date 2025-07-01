@@ -208,7 +208,7 @@ def plot_models_silhouette_diagrams(
                     -0.05,
                     y_lower_global + 0.5 * size_cluster_c * 20,
                     str(c),
-                    fontsize=14,
+                    fontsize=20,
                 )
 
                 # Compute the new y_lower for next plot
@@ -220,14 +220,15 @@ def plot_models_silhouette_diagrams(
 
             ax.set_title(
                 f"Silhouette diagrams {name_dataset}, $K={list_kclusters[i]}$, $SC={silhouette_avg:.3f}$",
-                fontsize=14,
+                fontsize=18,
             )
-            ax.set_xlabel(f"Silhouette coefficients $\eta$", fontsize=14)
-            ax.set_ylabel(r"Cluster labels", fontsize=14)
+            ax.set_xlabel(f"Silhouette coefficients $\eta$", fontsize=20)
+            ax.set_ylabel(r"Cluster labels", fontsize=20)
             # The vertical line for average silhouette score of all the values
             ax.axvline(x=silhouette_avg, color="black", linestyle="--")
             ax.set_yticks([])  # Clear the yaxis labels / ticks
             ax.set_xticks(np.arange(-0.1, 0.9, 0.1))
+            ax.tick_params(axis="x", labelsize=16)
 
     if num_subplots % 2 != 0:
         if num_subplots > 1:
@@ -433,9 +434,12 @@ def plot_mean_tubal_scalars(
     )
     plt.setp(stemline, linewidth=2.0)
     plt.setp(markerline, markersize=4)
-    ax.set_xlabel(r"$k$", fontsize=16)
-    ax.set_title(title, fontsize=18)
+    ax.set_xlabel(r"$k$", fontsize=18)
+    ax.set_title(title, fontsize=20)
     ax.set_xticks(range(0, len(df), step_xticks))
+    # Increase fontsize of x-ticks and y-ticks
+    ax.tick_params(axis="both", which="major", labelsize=14)
+
     if fig_dir != None:
         plt.savefig(fig_dir)
 
@@ -541,12 +545,12 @@ def plot_correlation_scatters(
             )
             axes[i].set_title(
                 f"$II$: R = {r_prev:.2f} / $p$-value$_{{Bonferroni-corrected}}$ = {p_prev * 2:.2g}\n$TC$: R = {r:.2f} / $p$-value$_{{Bonferroni-corrected}}$ = {p * 2:.2g}",
-                fontsize=18,
+                fontsize=20,
             )
-            axes[i].set_xlabel(xlabels[i], fontsize=18)
-            axes[i].set_ylabel(ylabels[i], fontsize=18)
-            axes[i].legend(fontsize=14)
-            axes[i].tick_params(axis="both", which="major", labelsize=14)
+            axes[i].set_xlabel(xlabels[i], fontsize=20)
+            axes[i].set_ylabel(ylabels[i], fontsize=20)
+            axes[i].legend(fontsize=16)
+            axes[i].tick_params(axis="both", which="major", labelsize=18)
             i += 1
 
     if fig_dir != None:
@@ -651,10 +655,10 @@ def plot_metrics_distribution(
             f"REST 1: $p$-value$_{{Bonferroni-corrected}}$ = {p_mann_rest1 * 4:.2g}\nREST 2: $p$-value$_{{Bonferroni-corrected}}$ = {p_mann_rest2 * 4:.2g}",
             fontsize=20,
         )
-        axes.set_ylabel(ylabels[idx], fontsize=18)
-        axes.set_xlabel("rs-fMRI recording (REST)", fontsize=18)
-        axes.legend(title="Sex", fontsize=12, title_fontsize=14)
-        axes.tick_params(axis="both", which="major", labelsize=14)
+        axes.set_ylabel(ylabels[idx], fontsize=20)
+        axes.set_xlabel("rs-fMRI recording (REST)", fontsize=20)
+        axes.legend(title="Sex", fontsize=18, title_fontsize=18)
+        axes.tick_params(axis="both", which="major", labelsize=20)
 
     if fig_dir != None:
         fig.savefig(fig_dir)
@@ -1009,18 +1013,18 @@ def plot_edge_weights_and_node_degrees_distributions(
             kde=True,
         )
         axes[i, 0].set_title(f"Edge weight distribution of {titles[i]}", fontsize=20)
-        axes[i, 0].set_xlabel("Edge Weight", fontsize=16)
-        axes[i, 0].set_ylabel("Frequency", fontsize=16)
-        axes[i, 0].tick_params(axis="both", which="major", labelsize=14)
+        axes[i, 0].set_xlabel("Edge weight", fontsize=20)
+        axes[i, 0].set_ylabel("Number of edges", fontsize=20)
+        axes[i, 0].tick_params(axis="both", which="major", labelsize=18)
 
         # Plot node degree distribution
         sns.histplot(
             np.sum(matrix, axis=1), bins=50, color="red", ax=axes[i, 1], kde=True
         )
         axes[i, 1].set_title(f"Node degree distribution of {titles[i]}", fontsize=20)
-        axes[i, 1].set_xlabel("Node Degree", fontsize=16)
-        axes[i, 1].set_ylabel("Frequency", fontsize=16)
-        axes[i, 1].tick_params(axis="both", which="major", labelsize=14)
+        axes[i, 1].set_xlabel("Node degree", fontsize=20)
+        axes[i, 1].set_ylabel("Number of edges", fontsize=20)
+        axes[i, 1].tick_params(axis="both", which="major", labelsize=18)
 
     plt.tight_layout()
     if fig_dir is not None:
