@@ -12,26 +12,17 @@ __status__ = "Production"
 
 
 ####################
-# Review History   #
-####################
-
-# Reviewed and Updated by Eduarda Centeno 20201103
-
-
-####################
 # Libraries        #
 ####################
 
 # Third party imports
-import networkx as nx  # version 2.4
-import numpy as np  # version 1.18.5
-import pandas as pd  # version 1.1.3
-import plotly.express as px  # version 4.6.0
-import plotly.graph_objs as go  # version 4.6.0
+import networkx as nx
+import numpy as np
+import pandas as pd
+import plotly.graph_objs as go
 from plotly.offline import init_notebook_mode, iplot
-from trimesh import load_mesh
 from sklearn.preprocessing import minmax_scale
-
+from trimesh import load_mesh
 
 ########################
 # Pre-defined settings #
@@ -45,7 +36,7 @@ path_pos = "./Schaefer_100Parcels_Atlas/Schaefer2018_100Parcels_7Networks_Tian_S
 path_subnet_names = "./Schaefer_100Parcels_Atlas/Schaefer2018_100Parcels_7Networks_Tian_Subcortex_S1_3T_subnet_order_names.txt"
 path_subnet_colors = "./Schaefer_100Parcels_Atlas/Schaefer2018_100Parcels_7Networks_Tian_Subcortex_S1_3T_subnet_order_colors.txt"
 path_subnet_labels = "./Schaefer_100Parcels_Atlas/Schaefer2018_100Parcels_7Networks_Tian_Subcortex_S1_3T_subnet_colors_number.txt"
-path_brainobj = "./Figures/brain.obj"
+path_brainobj = "./3D_Brain_Model/brain.obj"
 
 schaefer_nodes_label = np.genfromtxt(path_subnet_labels).astype(int) - 1
 schaefer_nodes_color = open(path_subnet_colors, "r").read().split("\n")
@@ -567,8 +558,7 @@ def Plot_Brain_Graph_Signal(
 
 
 def Plot_Brain_Clusters(
-    models_list,
-    k_cluster,
+    nodes_cluster,
     nodes_color=schaefer_nodes_color,
     scale=15,
     title="Brain Clusters",
@@ -607,15 +597,6 @@ def Plot_Brain_Clusters(
         If True, it will show the plot. Otherwise, it will return the plot object.
 
     """
-
-    for idx in range(len(models_list)):
-        if len(set(models_list[idx].labels_)) == k_cluster:
-            break
-    nodes_cluster = models_list[idx].labels_
-    if len(set(nodes_cluster)) != k_cluster:
-        ValueError(
-            f"K-Means clustering model not found containing {k_cluster} clusters!"
-        )
 
     df = df_schaefer.copy()
     df["cluster"] = nodes_cluster
@@ -712,7 +693,7 @@ def Plot_Brain_Clusters(
     )
 
     if movie != None:
-        fig.write_html(movie)
+        fig.write_html(movie, auto_open=True)
     if printscreen != None:
         fig.write_image(printscreen)
 
@@ -763,7 +744,6 @@ def Plot_Brain_Interactions(
     top_view=False,
     movie=None,
     printscreen=None,
-    plot_show=True,
 ):
     """
     Plots brain interactions in a 3D plot using Plotly.
@@ -781,8 +761,6 @@ def Plot_Brain_Interactions(
     movie (str, optional): File path to save the plot as an HTML file. Default is None.
 
     printscreen (str, optional): File path to save the plot as an image. Default is None.
-
-    plot_show (bool, optional): If True, displays the plot. Default is True.
 
     Returns:
     --------
@@ -942,14 +920,11 @@ def Plot_Brain_Interactions(
         )
     )
     if movie != None:
-        fig.write_html(movie)
+        fig.write_html(movie, auto_open=True)
     if printscreen != None:
         fig.write_image(printscreen)
 
-    if plot_show:
-        return iplot(fig)
-    else:
-        return
+    return
 
 
 #######################
@@ -962,7 +937,6 @@ n_rois = len(list_areas)
 areas = [list_areas[0:n_rois, 0][i] for i in range(0, n_rois)]
 
 ## Create gray shell
-# brain_mesh =  meshio.read(path_brainobj) # Reading a brain.obj file
 brain_mesh = load_mesh(path_brainobj)
 brain_trace = shell_brain(brain_mesh)
 

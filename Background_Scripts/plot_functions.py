@@ -1,463 +1,848 @@
-# Basic data manipulation and visualisation libraries
+import sys
+
+sys.path.insert(0, "./Background_Scripts")
+
+from math import ceil
+
 import matplotlib as mpl
-import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import plotly.express as px
-import plotly.graph_objects as go
 import seaborn as sns
-from plotly.subplots import make_subplots
-from HCP_Data_Vis_Schaefer_100Parcels import G_den
-import networkx as nx
+from computation_connectivity_weights_functions import pack_upper
+from hypergraph_connectivity_functions import (
+    all_edges,
+    all_triangles,
+    get_symmetrized_t_fft,
+)
+from scipy.stats import mannwhitneyu, pearsonr, ttest_ind, ttest_rel, zscore
+from sklearn.metrics import silhouette_samples
 
-mpl.rcParams["text.usetex"] = True
+mpl.rcParams["text.usetex"] = False
 mpl.rcParams["mathtext.fontset"] = "cm"
 mpl.rcParams["font.family"] = "Times New Roman"
 
-# Scikit-learn libraries
-from itertools import combinations
-from math import ceil
 
-from scipy import stats
-from sklearn.metrics import silhouette_samples
-from utils import (
-    get_modularity,
-    lower_diagonal_exclusive,
-    remove_outliers_zscore,
-)
-
-
-def plot_multiple_stem(
-    list_df,
-    xlabels,
-    ylabels,
-    ncols,
-    xticks=None,
-    yticks=None,
-    xlims=None,
-    ylims=None,
-    markersize=2,
-    figsize=(15, 5),
-    fig_name=None,
-):
-    """Plot multiple stem charts from a list of dataframes.
-
-    list_df : list of pandas.DataFrame
-        List of dataframes, each containing 'x' and 'y' columns for plotting.
-
-    xlabels : list of str
-        List of x-axis labels for each subplot.
-
-    ylabels : list of str
-        List of y-axis labels for each subplot.
-
-    ncols : int
-        Number of columns in the subplot grid.
-
-    xticks : list of list of float, optional
-        List of x-tick values for each subplot. Default is None.
-
-    yticks : list of list of float, optional
-        List of y-tick values for each subplot. Default is None.
-
-    xlims : list of tuple of float, optional
-        List of x-axis limits for each subplot. Each tuple contains (min, max). Default is None.
-
-    ylims : list of tuple of float, optional
-        List of y-axis limits for each subplot. Each tuple contains (min, max). Default is None.
-
-    markersize : int, optional
-        Size of the markers in the stem plot. Default is 2.
-
-    figsize : tuple of int, optional
-        Size of the figure. Default is (15, 5).
-
-    fig_name : str, optional
-        Name of the file to save the figure. If None, the figure is not saved. Default is None.
-
+def plot_weights_histogram(mi_avr_file, hoi_avr_file, file_name=None):
+    """
+    Plot three histograms showing weight distributions for edges and hyperedges.
+    Parameters
+    ----------
+    mi_avr_file : str or os.PathLike
+        Path to a .npy file containing a 1D numpy array of edge weights for the graph
+        (G_MI). The array length must match the number of elements in the global iterable
+        `all_edges`. Each array element is associated with the corresponding entry in
+        `all_edges` by index.
+    hoi_avr_file : str or os.PathLike
+        Path to a .npy file containing a 2D numpy array of hyperedge weights for the
+        hypergraph (H_OI/H_TC). Expected shape is (len(all_triangles), 2), where
+        column 0 corresponds to the H_OI weight (called hoi_ii in the function) and column 1
+        corresponds to the H_TC weight (called hoi_tc). The row order must match the global
+        iterable `all_triangles`.
+    file_name : str or os.PathLike, optional
+        If provided, the plotted figure is saved to this path (PNG) with dpi=300 and
+        bbox_inches='tight'. If None (default), the figure is not saved but is shown
+        interactively via plt.show().
     Returns
     -------
     None
+        This function does not return a value. It displays the figure (and optionally saves it)
+        and populates three subplots: edge weights (blue), H_OI hyperedge weights (red), and
+        H_TC hyperedge weights (green). Each histogram includes a KDE overlay.
+    Side effects and requirements
+    -----------------------------
+    - Uses numpy.load to read the .npy files.
+    - Relies on the global variables `all_edges` and `all_triangles` being defined and ordered
+      consistently with the saved arrays.
+    - Requires matplotlib.pyplot (as plt) and seaborn (as sns) to be imported in the caller's
+      namespace.
+    - Creates a 1x3 subplot figure sized (16, 3) and calls plt.show() at the end.
+    - If the input arrays' lengths/shapes do not match the expected sizes derived from the
+      globals, indexing errors or unexpected behavior may occur.
+    - No input validation is performed on array contents (NaNs, infinities, or negative values
+      will be plotted as-is).
+    Examples
+    --------
+    >>> plot_weights_histogram("edge_weights.npy", "hyperedge_weights.npy")
+    >>> plot_weights_histogram("edge_weights.npy", "hyperedge_weights.npy", file_name="weights.png")
     """
+    edge_avr = np.load(mi_avr_file)
+    edges = {}
+    for i, e in enumerate(all_edges):
+        edges[e] = edge_avr[i]
+    hoi_avr = np.load(hoi_avr_file)
+    hoi_oi = {}
+    hoi_tc = {}
+    for i, triangle in enumerate(all_triangles):
+        hoi_oi[triangle] = hoi_avr[i, 0]
+        hoi_tc[triangle] = hoi_avr[i, 1]
 
-    num_subplots = len(list_df)
-    nrows = (num_subplots + ncols - 1) // ncols
-    fig, axes = plt.subplots(nrows=nrows, ncols=ncols, figsize=figsize)
+    fig, axes = plt.subplots(nrows=1, ncols=3, figsize=(16, 3))
 
-    for n, ax in enumerate(axes.flat):
-        x = list_df[n]["x"]
-        y = list_df[n]["y"]
+    sns.histplot(
+        list(edges.values()),
+        bins=50,
+        color="blue",
+        ax=axes[0],
+        kde=True,
+    )
+    axes[0].set_title(r"Edge weight distribution of $\mathcal{G}_{MI}$", fontsize=20)
+    axes[0].set_xlabel("Edge weight", fontsize=16)
+    axes[0].set_ylabel("Number of edges", fontsize=16)
+    axes[0].tick_params(axis="both", which="major", labelsize=14)
 
-        markerline, stemline, baseline = ax.stem(x, y, linefmt="k--", markerfmt="bo")
+    sns.histplot(
+        list(hoi_oi.values()),
+        bins=50,
+        color="red",
+        ax=axes[1],
+        kde=True,
+    )
+    axes[1].set_title(
+        r"Hyperedge weight distribution of $\mathcal{H}_{OI}$", fontsize=20
+    )
+    axes[1].set_xlabel("Hyperedge weight", fontsize=16)
+    axes[1].set_ylabel("Number of hyperedges", fontsize=16)
+    axes[1].tick_params(axis="both", which="major", labelsize=14)
 
-        plt.setp(stemline, linewidth=1.0)
-        plt.setp(markerline, markersize=markersize)
-
-        ax.set_ylabel(ylabels[n], fontsize=14)
-        ax.set_xlabel(xlabels[n], fontsize=12)
-        if xlims != None and xlims[n] != None:
-            ax.set_xlim(xlims[n][0], xlims[n][1])
-        if ylims != None and ylims[n] != None:
-            ax.set_ylim(ylims[n][0], ylims[n][1])
-        if yticks != None:
-            ax.set_yticks(yticks[n])
-        if xticks != None:
-            ax.set_xticks(xticks[n])
-
-    if fig_name != None:
-        plt.savefig(fig_name)
+    sns.histplot(
+        list(hoi_tc.values()),
+        bins=50,
+        color="green",
+        ax=axes[2],
+        kde=True,
+    )
+    axes[2].set_title(
+        r"Hyperedge weight distribution of $\mathcal{H}_{TC}$", fontsize=20
+    )
+    axes[2].set_xlabel("Hyperedge weight", fontsize=16)
+    axes[2].set_ylabel("Number of hyperedges", fontsize=16)
+    axes[2].tick_params(axis="both", which="major", labelsize=14)
+    plt.tight_layout()
+    if file_name is not None:
+        plt.savefig(
+            file_name,
+            dpi=300,
+            bbox_inches="tight",
+        )
     plt.show()
-    return
 
 
-def plot_models_silhouette_diagrams(
-    list_kclusters,
-    list_embeddings,
-    list_kmeans_models,
-    nodes_color=[],
-    name_dataset="",
-    fig_size=None,
-    fig_dir=None,
-    plot_show=True,
+def plot_clustering_performance_metrics(
+    df_plot: pd.DataFrame,
+    file_name: str,
+    title: str = "Clustering performance metrics vs number of clusters (k)",
+    show: bool = True,
+    normalize: bool = False,
+    objectives: dict = None,
+    plot_global: bool = False,
 ):
-    """Plot the silhouette diagrams of K-Means models in 'list_kmeans_models'.
+    """
+    Plot clustering performance metrics vs number of clusters and compute
+    a composite ("Global") score. The user may choose whether the Global
+    curve is plotted.
 
     Parameters
     ----------
-    list_kclusters : list of int
-        List of K clusters for which the silhouette diagram is to be plotted.
-
-    list_embeddings : list of numpy.ndarray
-        List of the corresponding embeddings.
-
-    list_kmeans_models : list of KMeans
-        List of K-Means objects.
-
-    nodes_color : list of str, optional
-        List of nodes color. Default is an empty list.
-
-    name_dataset : str, optional
-        Name of the dataset. Default is an empty string.
-
-    fig_size : tuple of int, optional
-        Figure size as (width, height). Default is None.
-
-    fig_dir : str, optional
-        Directory to save the figure. Default is None.
-
-    plot_show : bool, optional
-        Whether to show the plot. Default is True.
+    df_plot : pandas.DataFrame
+        DataFrame with clustering metrics. Index must represent k.
+    file_name : str or None
+        Path to save the figure. If None, the plot is not saved.
+    title : str
+        Title of the figure.
+    show : bool
+        If True, displays the plot.
+    normalize : bool
+        If True, perform min–max normalization per metric.
+    objectives : dict
+        Mapping metric -> {"min" or "max"} defining optimization direction.
+    plot_global : bool
+        If True, the Global metric curve is plotted.
+        If False, Global is computed but not displayed.
 
     Returns
     -------
-    None
-
+    pandas.DataFrame
+        Long DataFrame with columns:
+            - k : number of clusters
+            - metric : metric name (including Global)
+            - score : original or aggregated value
+            - score_norm : normalized score (if normalize=True)
     """
 
-    dict_node_labels = {}
-    dict_embeddings = {}
-    for idx, kmeans_model in enumerate(list_kmeans_models):
-        n_clusters = len(set(kmeans_model.labels_))
-        dict_node_labels[n_clusters] = kmeans_model.labels_
-        dict_embeddings[n_clusters] = list_embeddings[idx]
-    num_subplots = len(list_kclusters)
-    ncols = 2
-    nrows = (num_subplots + 1) // 2
-    fig_width = 12
-    fig_height = 4 * num_subplots
-    if fig_size != None:
-        fig_width, fig_height = fig_size[0], fig_size[1]
-    fig, axes = plt.subplots(
-        nrows, ncols, figsize=(fig_width, fig_height), gridspec_kw={"hspace": 0.25}
-    )
-
-    percent = {}
-    for i, ax in enumerate(axes.flat):
-        if i < num_subplots:
-            y_pred = dict_node_labels.get(list_kclusters[i])
-            embedding = dict_embeddings.get(list_kclusters[i])
-            silhouette_coefficients = silhouette_samples(embedding, y_pred)
-            silhouette_avg = silhouette_coefficients.mean()
-            df_sc = pd.DataFrame({"sc": silhouette_coefficients, "cluster": y_pred})
-            if len(nodes_color) == len(y_pred):
-                df_sc["color"] = nodes_color
-            else:
-                df_sc["color"] = [px.colors.qualitative.Light24[idx] for idx in y_pred]
-
-            y_lower_global = 0
-            for c in range(list_kclusters[i]):
-                cth_cluster_silhouette_values = df_sc.loc[
-                    df_sc["cluster"] == c
-                ].sort_values(by="sc")
-                size_cluster_c = len(cth_cluster_silhouette_values)
-                y_lower_local = y_lower_global
-                for j in range(size_cluster_c):
-                    y_upper_local = y_lower_local + 20
-                    ax.fill_betweenx(
-                        np.arange(y_lower_local, y_upper_local),
-                        0,
-                        cth_cluster_silhouette_values.iloc[j]["sc"],
-                        facecolor=cth_cluster_silhouette_values.iloc[j]["color"],
-                        alpha=0.7,
-                    )
-                    y_lower_local = y_upper_local + 2
-
-                # Label the silhouette plots with their cluster numbers at the middle
-                ax.text(
-                    -0.05,
-                    y_lower_global + 0.5 * size_cluster_c * 20,
-                    str(c),
-                    fontsize=20,
-                )
-
-                # Compute the new y_lower for next plot
-                y_lower_global = y_upper_local + 100  # 10 for the 0 samples
-
-            percent[list_kclusters[i]] = (
-                100 * len(df_sc[df_sc["sc"] > silhouette_avg]) / len(df_sc)
-            )
-
-            ax.set_title(
-                f"Silhouette diagrams {name_dataset}, $K={list_kclusters[i]}$, $SC={silhouette_avg:.3f}$",
-                fontsize=18,
-            )
-            ax.set_xlabel(f"Silhouette coefficients $\eta$", fontsize=20)
-            ax.set_ylabel(r"Cluster labels", fontsize=20)
-            # The vertical line for average silhouette score of all the values
-            ax.axvline(x=silhouette_avg, color="black", linestyle="--")
-            ax.set_yticks([])  # Clear the yaxis labels / ticks
-            ax.set_xticks(np.arange(-0.1, 0.9, 0.1))
-            ax.tick_params(axis="x", labelsize=16)
-
-    if num_subplots % 2 != 0:
-        if num_subplots > 1:
-            axes[-1, -1].axis("off")
-        else:
-            axes[-1].axis("off")
-
-    plt.tight_layout()
-    if fig_dir != None:
-        plt.savefig(fig_dir)
-    if plot_show:
-        plt.show()
-    else:
-        plt.close()
-
-    return
-
-
-def plot_pie_clusters(
-    models_list,
-    k_cluster,
-    nodes_color,
-    nodes_subnet,
-    fig_title="",
-    file_dir=None,
-    plot_show=True,
-):
-    """Plot a pie chart of the nodes distribution among the clusters.
-
-    models_list : list of KMeans objects
-        List of K-Means models.
-
-    k_cluster : int
-        Number of clusters to be plotted.
-
-    nodes_color : list of str
-        List of colors for each node.
-
-    nodes_subnet : list of str
-        List of subnets where each node belongs.
-
-    fig_title : str, optional
-        Title of the figure (default is an empty string).
-
-    file_dir : str, optional
-        Directory to save the plot image (default is None).
-
-    plot_show : bool, optional
-        Whether to display the plot (default is True).
-
-    Returns
-    -------
-    None
-    """
-
-    for idx in range(len(models_list)):
-        if len(set(models_list[idx].labels_)) == k_cluster:
-            break
-
-    nodes_cluster = models_list[idx].labels_
-    df_brain = pd.DataFrame(
-        {"cluster": nodes_cluster, "color": nodes_color, "subnet": nodes_subnet}
-    )
-
-    cluster_list = sorted(set(nodes_cluster))
-    df = pd.DataFrame(
-        0,
-        index=cluster_list,
-        columns=df_brain["subnet"].drop_duplicates().values.tolist(),
-    )
-    for cluster_name in list(df.columns):
-        for cluster_label in df.index:
-            df.loc[cluster_label, cluster_name] = len(
-                df_brain[
-                    (df_brain["subnet"] == cluster_name)
-                    & (df_brain["cluster"] == cluster_label)
-                ]
-            )
-
-    num_subplots = len(cluster_list)
-    ncols = 3
-    nrows = (num_subplots + 2) // 3
-
-    fig = make_subplots(
-        rows=nrows,
-        cols=ncols,
-        specs=np.full((nrows, ncols), {"type": "domain"}).tolist(),
-    )
-    row = 1
-    col = 1
-    nodes_distribution = np.sum(df.to_numpy(), axis=0)
-    for i in df.index:
-        cluster_node_info = df.loc[i]
-        overall_percentual = 100 * cluster_node_info.values / nodes_distribution
-        percentual = [f"({p:.0f}%)" for idx, p in enumerate(overall_percentual)]
-        fig.add_trace(
-            go.Pie(
-                labels=list(cluster_node_info.index),
-                values=cluster_node_info.values,
-                name=f"Cluster {i}",
-                textinfo="percent+text",
-                text=percentual,
-            ),
-            row,
-            col,
+    # ---- Validations ----
+    if not isinstance(df_plot, pd.DataFrame) or df_plot.empty:
+        raise ValueError(
+            "df_plot must be a non-empty DataFrame with metrics as columns."
         )
-        col += 1
-        if col > ncols:
-            row += 1
-            col = 1
-    # Use `hole` to create a donut-like pie chart
-    fig.update_traces(
-        textfont_color="black",
-        textfont_size=18,
-        textposition="inside",
-        hole=0.4,
-        hoverinfo="label+percent+name",
-        texttemplate="%{percent:.2p}<br>%{text}",
-        marker=dict(
-            colors=df_brain["color"].drop_duplicates().values.tolist(),
-            line=dict(color="black", width=1),
-        ),
+
+    df = df_plot.copy()
+    metrics_to_plot = list(objectives.keys()) if objectives else None
+
+    # Keep only metrics specified
+    if metrics_to_plot is not None:
+        keep = [m for m in metrics_to_plot if m in df.columns]
+        if not keep:
+            raise ValueError(
+                "None of the requested metrics_to_plot are present in df_plot."
+            )
+        df = df[keep]
+
+    # Reshape to long format
+    df = df.sort_index()
+    df = df.reset_index().rename(columns={"index": "k"})
+    df["k"] = df["k"].astype(int)
+    df_long = df.melt(id_vars="k", var_name="metric", value_name="score")
+
+    # ---- Normalization ----
+    y_col = "score"
+    if normalize:
+
+        def _minmax(s):
+            smin, smax = s.min(), s.max()
+            return (s - smin) / (smax - smin) if smax != smin else np.zeros_like(s)
+
+        df_long["score_norm"] = df_long.groupby("metric")["score"].transform(_minmax)
+        y_col = "score_norm"
+
+    # ---- Compute Global score ----
+    overall = {}
+    for k in df_long["k"].unique():
+        score_overall = 0
+        for key, direction in objectives.items():
+            score = df_long[(df_long["k"] == k) & (df_long["metric"] == key)][
+                y_col
+            ].values[0]
+
+            if direction == "max":
+                score_overall += score
+            elif direction == "min":
+                score_overall += df_long[df_long["metric"] == key][y_col].max() - score
+            else:
+                raise ValueError("Objectives must be 'max' or 'min'.")
+
+        overall[k] = score_overall
+
+    if normalize:
+        vmin, vmax = min(overall.values()), max(overall.values())
+        overall = {
+            k: (v - vmin) / (vmax - vmin) if vmax != vmin else 0
+            for k, v in overall.items()
+        }
+
+    temp = pd.DataFrame(
+        {
+            "k": list(overall.keys()),
+            "metric": ["Global"] * len(overall),
+            "score": list(overall.values()),
+            "score_norm": list(overall.values()),
+        }
     )
 
-    fig.update_layout(
-        title_text=fig_title,
-        autosize=False,
-        width=800,
-        font_family="Times New Roman",
-        height=800,
-        uniformtext_minsize=16,
-        uniformtext_mode=None,
-        legend=dict(font=dict(size=16), title_text="Brain functional\nsubnetworks"),
-        margin=dict(l=0, r=0, b=0, t=50, pad=0),
-    )
+    df_long = pd.concat([df_long, temp], ignore_index=True)
 
-    if file_dir != None:
-        fig.write_image(file_dir)
+    # ---- Plot ----
+    fig, ax = plt.subplots(figsize=(8, 5))
 
-    # Code to plot the pie chart
-    if plot_show:
-        fig.show()
-    else:
-        plt.close()
+    for metric, sub in df_long.groupby("metric"):
+        if (metric == "Global") and (not plot_global):
+            continue  # skip plotting Global curve
 
-    return
+        sub = sub.sort_values("k")
+        alpha = 1.0 if metric == "Global" or not plot_global else 0.3
 
+        ax.plot(
+            sub["k"],
+            sub[y_col],
+            marker="o",
+            label=metric,
+            linewidth=2,
+            alpha=alpha,
+        )
 
-def plot_mean_tubal_scalars(
-    As,
-    k_indexes,
-    title="",
-    step_xticks=2,
-    figsize=(10, 4),
-    fig_dir=None,
-    plot_show=True,
-):
-    """Plot the 'k_indexes' of the mean absolute value of tubal scalars of the 3-order tensor 'As'.
+    ax.set_title(f"{title}{' (normalized)' if normalize else ''}")
+    ax.set_xlabel("k (number of clusters)")
+    ax.set_ylabel("Score" + (" (normalized [0, 1])" if normalize else ""))
+    ax.grid(True, linestyle="--", alpha=0.4)
 
-    As : numpy.ndarray
-        A 3-order tensor (numpy array) from which the tubal scalars are computed.
+    # Legend only for visible curves
+    ax.legend(title="Metric", loc="best")
 
-    k_indexes : list of int
-        List of integer indices to be plotted.
+    fig.tight_layout()
 
-    title : str, optional
-        Title of the plot (default is an empty string).
+    # Save
+    if file_name is not None:
+        fig.savefig(file_name, dpi=300, bbox_inches="tight")
 
-    step_xticks : int, optional
-        Step size for x-axis ticks (default is 2).
-
-    figsize : tuple of int, optional
-        Size of the figure (default is (10, 4)).
-
-    fig_dir : str or None, optional
-        Directory to save the figure. If None, the figure is not saved (default is None).
-
-    plot_show : bool, optional
-        If True, the plot is shown. If False, the plot is closed (default is True).
-
-    Returns
-    -------
-    None
-    """
-
-    N0, N1, N2 = As.shape
-    l = list(combinations(range(N0), 2))
-    tubal_scalars_list = []
-    for c in l:
-        tubal_scalars_list.append(np.squeeze(As[c[0], c[1], : ceil(N2 / 2) + 1]))
-    tubal_scalars_list = np.abs(np.array(tubal_scalars_list))
-    mean_tubal_scalars = np.mean(tubal_scalars_list, axis=0)
-    df = pd.DataFrame(
-        {"k": range(0, len(mean_tubal_scalars)), "mean": mean_tubal_scalars}
-    )
-
-    df = df.iloc[k_indexes]
-
-    fig, ax = plt.subplots(nrows=1, ncols=1, figsize=figsize)
-    # Plot a stem plot of the dafarame
-    markerline, stemline, baseline = ax.stem(
-        df["k"], df["mean"], linefmt="k--", markerfmt="bo"
-    )
-    plt.setp(stemline, linewidth=2.0)
-    plt.setp(markerline, markersize=4)
-    ax.set_xlabel(r"$k$", fontsize=18)
-    ax.set_title(title, fontsize=20)
-    ax.set_xticks(range(0, len(df), step_xticks))
-    # Increase fontsize of x-ticks and y-ticks
-    ax.tick_params(axis="both", which="major", labelsize=14)
-
-    if fig_dir != None:
-        plt.savefig(fig_dir)
-
-    if plot_show:
+    if show:
         plt.show()
     else:
-        plt.close()
+        plt.close(fig)
+
+    return df_long
+
+
+def plot_nmis_emp_syn_sur(
+    df_nmis,
+    k_clusters,
+    k_selected=None,
+    fig_name=None,
+    violin_fig_name=None,
+    fig_size=(8, 5),
+    violin_fig_size=(5, 5),
+    fig_title=None,
+    label_fontsize=18,
+    tick_fontsize=18,
+    title_fontsize=18,
+    legend_fontsize=14,
+    text_fontsize=19,
+    markersize=20,
+):
+    """
+    Plot NMIS comparisons between empirical, synthetic (hybrid and pairwise) and surrogate communities.
+    This function summarizes and visualizes Normalized Mutual Information Scores (NMIS)
+    stored in a DataFrame and produces:
+    - a line plot of mean NMIS ± 1 standard deviation across samples for each K
+        for three conditions: Empirical/(hybrid) Synthetic, Empirical/(pairwise) Synthetic, Empirical/Surrogate;
+    - optional red markers on the line plot where the p-value for the difference between
+        hybrid and pairwise synthetic results is < 0.05 for a given K;
+    - an optional violin plot (split) for a selected K showing the distribution of NMIS
+        for Empirical⇔(hybrid) Synthetic vs Empirical⇔(pairwise) Synthetic, with an associated
+        paired t-test p-value shown in the title.
+    Parameters
+    ----------
+    df_nmis : pandas.DataFrame
+            DataFrame where each row corresponds to one sample/replicate and must contain
+            the following columns (values in each cell are typically dict-like mapping K -> NMIS):
+                - 'nmis_emp_syn_hoi'   : NMIS between empirical and (hybrid) synthetic (dict or NaN)
+                - 'nmis_emp_syn_pair'  : NMIS between empirical and (pairwise) synthetic (dict or NaN)
+                - 'nmis_emp_sur'       : NMIS between empirical and surrogate (dict or NaN)
+            Any non-dict entries are treated as missing (NaN). The function copies df_nmis internally.
+    k_clusters : sequence
+            Sequence (list/array) of K values (cluster numbers) to consider and use as x-axis ticks.
+            These keys are used to extract values from the per-row dicts.
+    k_selected : scalar, optional
+            If provided, must be one of the values in k_clusters. When set, the function:
+                - creates a split violin plot comparing Empirical⇔(hybrid) vs Empirical⇔(pairwise)
+                    distributions at that K.
+            Default is None (no violin plot / per-K annotation).
+    fig_name : str or path-like, optional
+            If provided, the main plot is saved to this filename (PNG) using dpi=300 and bbox_inches='tight'.
+            Default is None (no save).
+    violin_fig_name : str or path-like, optional
+            If provided and k_selected is not None, the violin plot is saved to this filename (PNG).
+            Default is None (no save).
+    fig_size : tuple, optional
+            Matplotlib figure size for the main plot (width, height). Default (8, 5).
+    violin_fig_size : tuple, optional
+            Matplotlib figure size for the violin plot. Default (5, 5).
+    fig_title : str or None
+            Title fragment used in plot titles. If None, a short generic title will still be used.
+    label_fontsize, tick_fontsize, title_fontsize, legend_fontsize, text_fontsize : int, optional
+            Font sizes for labels, ticks, title, legend and annotation text respectively.
+    markersize : int, optional
+            Marker size used for the significance circle markers highlighting K values where
+            hybrid vs pairwise p < 0.05. Default 20.
+    Behavior and calculations
+    -------------------------
+    - Extracts vectors of NMIS per row for each K from the three DataFrame columns, producing
+        arrays of shape (n_samples, n_K). Missing entries are represented as np.nan.
+    - For each K:
+            - mean and sample standard deviation (ddof=1) are computed across rows ignoring NaNs.
+            - a p-value comparing hybrid vs pairwise is computed:
+                    * if a paired sample exists for a row (both values non-NaN) for that K and there
+                        are >1 such paired observations, a paired t-test (scipy.stats.ttest_rel) is used.
+                    * otherwise, if there are >1 unpaired observations for each group, a Welch
+                        t-test (scipy.stats.ttest_ind with equal_var=False) is used.
+                    * if insufficient data, the p-value is set to NaN.
+    - The main plot:
+            - draws lines+markers for the means of the three conditions across K,
+                and plots bars corresponding to ±1 standard deviation (as filled bars).
+            - marks K positions with red hollow circles where p < 0.05 (hybrid vs pairwise).
+            - if k_selected is provided, annotates the axis with means for that K and the
+                paired p-value (if computable), and draws a vertical dashed line at the selected K.
+    - If k_selected is provided, a split seaborn violin plot is produced comparing the
+        distributions of NMIS for Empirical⇔(hybrid) vs Empirical⇔(pairwise) at that K.
+        The violin plot uses only samples where both hybrid and pairwise values are available
+        (paired comparisons). A paired t-test p-value is computed and shown (or "NA" if not available).
+    Dependencies
+    ------------
+    This function expects the following imports in the calling scope:
+            import matplotlib.pyplot as plt
+    It also uses matplotlib/seaborn styling for plotting.
+    Return
+    ------
+    None
+            The function shows the main plot (and the violin plot when requested) and may save
+            them to disk if fig_name and/or violin_fig_name are provided.
+    Raises
+    ------
+    ValueError
+            - If df_nmis is empty.
+            - If k_selected is not None and is not contained in k_clusters.
+    Notes
+    -----
+    - The function treats non-dict entries in expected dict columns as missing.
+    - Means and SDs are computed along axis=0 ignoring NaNs.
+    - p-values are computed per-K using either paired or unpaired t-tests depending on data availability.
+    - Plotting is performed with plt.show(), so calling code in non-interactive environments may
+        need to manage figure display or saving accordingly.
+    Examples
+    --------
+    Basic usage:
+            plot_nmis_emp_syn_sur(df_nmis, k_clusters=[2,3,4,5], fig_title="My dataset")
+    With violin at a selected K and saving figures:
+            plot_nmis_emp_syn_sur(
+                    k_clusters=[2,3,4,5],
+                    k_selected=3,
+                    fig_name="nmis_summary.png",
+                    violin_fig_name="nmis_violin_k3.png",
+                    fig_title="Dataset X"
+    """
+
+    df = df_nmis.copy()
+    if df.empty:
+        raise ValueError("DataFrame 'df' está vazio.")
+
+    if k_selected not in k_clusters and k_selected is not None:
+        raise ValueError("k_selected must be one of k_clusters")
+
+    arr_hoi, arr_pair, arr_sur = [], [], []
+    if k_selected is not None:
+        nmis_emp_syn_hoi_selected, nmis_emp_syn_pair_selected, nmis_emp_sur_selected = (
+            [],
+            [],
+            [],
+        )
+
+    for _, row in df.iterrows():
+        d_hoi = row["nmis_emp_syn_hoi"]
+        d_pair = row["nmis_emp_syn_pair"]
+        d_sur = row["nmis_emp_sur"]
+
+        vals_hoi = [
+            d_hoi.get(k, np.nan) if isinstance(d_hoi, dict) else np.nan
+            for k in k_clusters
+        ]
+        vals_pair = [
+            d_pair.get(k, np.nan) if isinstance(d_pair, dict) else np.nan
+            for k in k_clusters
+        ]
+        vals_sur = [
+            d_sur.get(k, np.nan) if isinstance(d_sur, dict) else np.nan
+            for k in k_clusters
+        ]
+
+        arr_hoi.append(vals_hoi)
+        arr_pair.append(vals_pair)
+        arr_sur.append(vals_sur)
+
+        if k_selected is not None:
+            nmis_emp_syn_hoi_selected.append(
+                d_hoi.get(k_selected, np.nan) if isinstance(d_hoi, dict) else np.nan
+            )
+            nmis_emp_syn_pair_selected.append(
+                d_pair.get(k_selected, np.nan) if isinstance(d_pair, dict) else np.nan
+            )
+            nmis_emp_sur_selected.append(
+                d_sur.get(k_selected, np.nan) if isinstance(d_sur, dict) else np.nan
+            )
+
+    arr_hoi = np.array(arr_hoi, dtype=float)
+    arr_pair = np.array(arr_pair, dtype=float)
+    arr_sur = np.array(arr_sur, dtype=float)
+
+    mean_hoi = np.nanmean(arr_hoi, axis=0)
+    std_hoi = np.nanstd(arr_hoi, axis=0, ddof=1)
+    mean_pair = np.nanmean(arr_pair, axis=0)
+    std_pair = np.nanstd(arr_pair, axis=0, ddof=1)
+    mean_sur = np.nanmean(arr_sur, axis=0)
+    std_sur = np.nanstd(arr_sur, axis=0, ddof=1)
+
+    # p-value per K between the two "synthetic" curves (hybrid vs pairwise)
+    pvals_hybrid_vs_pair = []
+    for j, _ in enumerate(k_clusters):
+        x = arr_hoi[:, j]
+        y = arr_pair[:, j]
+        mask = ~np.isnan(x) & ~np.isnan(y)
+        if mask.sum() > 1:
+            _, pval = ttest_rel(x[mask], y[mask])
+        else:
+            x2 = x[~np.isnan(x)]
+            y2 = y[~np.isnan(y)]
+            if len(x2) > 1 and len(y2) > 1:
+                _, pval = ttest_ind(x2, y2, equal_var=False)
+            else:
+                pval = np.nan
+        pvals_hybrid_vs_pair.append(pval)
+    pvals_hybrid_vs_pair = np.array(pvals_hybrid_vs_pair)
+
+    # K selected for the violin plot
+    if k_selected is not None:
+        a = np.asarray(nmis_emp_syn_hoi_selected, dtype=float)
+        b = np.asarray(nmis_emp_syn_pair_selected, dtype=float)
+        c = np.asarray(nmis_emp_sur_selected, dtype=float)
+        mask_ab = ~np.isnan(a) & ~np.isnan(b)
+        p_syn_hoi_syn_pair = np.nan
+        if mask_ab.sum() > 1:
+            _, p_syn_hoi_syn_pair = ttest_rel(a[mask_ab], b[mask_ab])
+
+    # --- Main plot: lines with markers + bars (±1 SD) ---
+    ks = np.array(k_clusters, dtype=float)
+    fig, ax = plt.subplots(figsize=fig_size)
+
+    if ks.size > 1:
+        uniq = np.unique(np.sort(ks))
+        step = float(np.min(np.diff(uniq))) if uniq.size > 1 else 1.0
+    else:
+        step = 1.0
+    width = 0.8 * step
+
+    # 1) hybrid
+    (h1,) = ax.plot(
+        ks,
+        mean_hoi,
+        linestyle="-",
+        marker="o",
+        markersize=6,
+        markerfacecolor="auto",
+        label="Empirical / (hybrid) Synthetic",
+        color="C0",
+    )
+    color1 = h1.get_color()
+    lower = mean_hoi - std_hoi
+    upper = mean_hoi + std_hoi
+    ax.bar(
+        ks,
+        height=(upper - lower),
+        bottom=lower,
+        width=width,
+        color=color1,
+        alpha=0.25,
+        align="center",
+        edgecolor="none",
+        linewidth=0,
+    )
+
+    # 2) pairwise
+    (h2,) = ax.plot(
+        ks,
+        mean_pair,
+        linestyle="-",
+        marker="o",
+        markersize=6,
+        markerfacecolor="auto",
+        label="Empirical / (pairwise) Synthetic",
+        color="C2",
+    )
+    color2 = h2.get_color()
+    lower = mean_pair - std_pair
+    upper = mean_pair + std_pair
+    ax.bar(
+        ks,
+        height=(upper - lower),
+        bottom=lower,
+        width=width,
+        color=color2,
+        alpha=0.25,
+        align="center",
+        edgecolor="none",
+        linewidth=0,
+    )
+
+    # 3) surrogate
+    (h3,) = ax.plot(
+        ks,
+        mean_sur,
+        linestyle="-",
+        marker="o",
+        markersize=6,
+        markerfacecolor="auto",
+        label="Empirical / Surrogate",
+        color="C1",
+    )
+    color3 = h3.get_color()
+    lower = mean_sur - std_sur
+    upper = mean_sur + std_sur
+    ax.bar(
+        ks,
+        height=(upper - lower),
+        bottom=lower,
+        width=width,
+        color=color3,
+        alpha=0.25,
+        align="center",
+        edgecolor="none",
+        linewidth=0,
+    )
+
+    # --- Red circles where p < 0.05 (between hybrid and pairwise) ---
+    added_legend = False
+    for j, k in enumerate(ks):
+        p = pvals_hybrid_vs_pair[j]
+        if not np.isnan(p) and p < 0.05:
+            y_mid = 0.5 * (mean_hoi[j] + mean_pair[j])
+            ax.plot(
+                k,
+                y_mid,
+                "o",
+                markersize=markersize,
+                markerfacecolor="none",
+                markeredgecolor="red",
+                markeredgewidth=2,
+                label=(
+                    "p ≤ 0.05 (hybrid vs pairwise)"
+                    if not added_legend
+                    else "_nolegend_"
+                ),
+            )
+            added_legend = True
+
+    ax.set_xlabel("$K$ (number of clusters)", fontsize=label_fontsize)
+    ax.set_ylabel("NMIS (Mean ± 1 SD)", fontsize=label_fontsize)
+    ax.set_title(
+        f"Similarity between empirical, synthetic and surrogate communities: {fig_title}",
+        fontsize=title_fontsize,
+    )
+    ax.legend(fontsize=legend_fontsize, loc="upper left")
+    ax.tick_params(axis="both", which="major", labelsize=tick_fontsize)
+    ax.set_xticks(ks)
+    plt.grid(True, linestyle="--", alpha=0.4)
+    plt.tight_layout()
+    if fig_name is not None:
+        plt.savefig(fig_name, dpi=300, bbox_inches="tight")
+    plt.show()
+
+    # --- VIOLIN PLOT SPLIT (seaborn) ---
+    if k_selected is not None:
+        valid_mask = (~np.isnan(a)) & (~np.isnan(b))
+
+        df_vio = pd.DataFrame(
+            {
+                "NMIS": np.concatenate([a[valid_mask], b[valid_mask]]),
+                "Type": (
+                    ["Empirical $\Leftrightarrow$ (hybrid) Synthetic"]
+                    * valid_mask.sum()
+                    + ["Empirical $\Leftrightarrow$ (pairwise) Synthetic"]
+                    * valid_mask.sum()
+                ),
+                "Group": ["NMIS comparison"] * (2 * valid_mask.sum()),
+            }
+        )
+
+        if not np.isnan(p_syn_hoi_syn_pair):
+            p_title = f"$p$-value = {p_syn_hoi_syn_pair:.1e}"
+        else:
+            p_title = "$p$ = NA"
+
+        plt.figure(figsize=violin_fig_size)
+        sns.violinplot(
+            data=df_vio,
+            x="Group",
+            y="NMIS",
+            hue="Type",
+            split=True,
+            inner="quart",
+            palette={
+                "Empirical $\Leftrightarrow$ (hybrid) Synthetic": "C0",
+                "Empirical $\Leftrightarrow$ (pairwise) Synthetic": "C2",
+            },
+            linewidth=1.0,
+        )
+
+        plt.title(
+            f"{fig_title}: NMIS distributions at $K$ = {k_selected}, {p_title}",
+            fontsize=title_fontsize,
+        )
+        plt.ylabel("NMIS", fontsize=label_fontsize)
+        plt.xlabel("")
+        plt.legend(title="", fontsize=legend_fontsize, loc="upper right")
+        plt.grid(True, linestyle="--", alpha=0.4)
+        plt.tick_params(axis="both", which="major", labelsize=tick_fontsize)
+        plt.tight_layout()
+        if violin_fig_name is not None:
+            plt.savefig(violin_fig_name, dpi=300, bbox_inches="tight")
+        plt.show()
+
+
+def plot_nmi_curves(
+    df_list,
+    labels=None,
+    colors=None,
+    title="NMI across subjects vs number of clusters (K)",
+    title_fontsize=20,
+    legend_fontsize=20,
+    label_fontsize=20,
+    tick_fontsize=20,
+    figsize=(8, 5),
+    show=True,
+    save_path=None,
+):
+    """
+    Plot NMI (Normalized Mutual Information) curves across subjects as a function of
+    the number of clusters (K).
+    The function expects one or more pandas DataFrames, each containing two columns:
+    - "k": number of clusters (can be numeric; values are grouped and sorted)
+    - "NMI": NMI values for the corresponding k
+    For each DataFrame the function computes the per-k mean and standard deviation
+    of NMI, then plots:
+    - a curve of mean NMI vs k (first curve solid, subsequent curves dashed),
+    - a marker for each k (markers cycle through a default set),
+    - a discretized shaded band at each k representing mean ± 1 std (drawn as narrow
+        bar-like patches, clipped to [0, 1]).
+    Args:
+            df_list (list[pandas.DataFrame] or tuple[pandas.DataFrame]):
+                    Non-empty sequence of DataFrames. Each DataFrame must contain columns
+                    "k" and "NMI". The data are grouped by "k" and aggregated by mean and std.
+            labels (list[str], optional):
+                    Labels for the plotted curves. If None, default labels "Curve 1", "Curve 2",
+                    ... are generated. Length must equal len(df_list) when provided.
+            colors (list[str] or list[tuple], optional):
+                    Colors to use for each curve (any matplotlib-acceptable color spec).
+                    If None, colors are chosen automatically. When provided, length must match
+                    len(df_list).
+            title (str, optional):
+                    Plot title. Default: "NMI across subjects vs number of clusters (K)".
+            title_fontsize (int or float, optional):
+                    Font size for the title. Default: 20.
+            legend_fontsize (int or float, optional):
+                    Font size for the legend. Default: 20.
+            label_fontsize (int or float, optional):
+                    Font size for the x/y axis labels. Default: 20.
+            tick_fontsize (int or float, optional):
+                    Font size for axis tick labels. Default: 20.
+            figsize (tuple(float, float), optional):
+                    Figure size in inches (width, height). Default: (8, 5).
+            show (bool, optional):
+                    If True (default) call plt.show() after drawing. If False, the figure is
+                    closed (plt.close(fig)) so no interactive output is produced.
+            save_path (str or path-like, optional):
+                    If provided, the figure is saved to this path using dpi=150 and
+                    bbox_inches='tight' before showing/closing.
+    Raises:
+            ValueError:
+                    - If df_list is not a non-empty list/tuple.
+                    - If any DataFrame in df_list does not contain the required columns
+                        {"k", "NMI"}.
+                    - If labels is provided but its length does not match len(df_list).
+                    - If colors is provided but its length does not match len(df_list).
+    Notes / Plot details:
+            - For each DataFrame, NaN standard deviations (e.g., when a single sample
+                exists for a k) are replaced with 0.0.
+            - The shaded uncertainty is drawn per-k as a bar with width equal to
+                0.8 * min(diff(sorted(ks))). If only one k exists, a default step of 1.0
+                is used.
+            - Mean ± std are clipped to the interval [0, 1] for plotting.
+            - The first curve is drawn with a solid line ('-'); subsequent curves use
+                dashed lines ('--'). Markers cycle through a small set of symbols.
+            - Axis limits: y is fixed to (0, 1). Grid lines are enabled with dashed style.
+            - The function returns None.
+    """
+
+    if not isinstance(df_list, (list, tuple)) or len(df_list) == 0:
+        raise ValueError("df_list must be a non-empty list of DataFrames.")
+
+    n = len(df_list)
+    if labels is None:
+        labels = [f"Curve {i + 1}" for i in range(n)]
+    if len(labels) != n:
+        raise ValueError("labels length must match df_list length.")
+    if colors is not None and len(colors) != n:
+        raise ValueError("colors length must match df_list length or be None.")
+
+    # Markers
+    default_markers = ["o", "s", "D", "P", "X", "*", "<", ">", "h", "8"]
+    markers_use = [default_markers[i % len(default_markers)] for i in range(n)]
+
+    # Aggregate per df
+    summaries = []
+    for df in df_list:
+        if not {"k", "NMI"}.issubset(df.columns):
+            raise ValueError("Each DataFrame must have columns ['k', 'NMI'].")
+        summary = (
+            df.groupby("k")["NMI"]
+            .agg(mean="mean", std="std")
+            .reset_index()
+            .sort_values("k")
+        )
+        summary["std"] = summary["std"].fillna(0.0)
+        summaries.append(summary)
+
+    fig, ax = plt.subplots(figsize=figsize)
+    for i, (summary, label) in enumerate(zip(summaries, labels)):
+        ks = summary["k"].astype(int).values
+        mean_nmi = summary["mean"].values
+        std_nmi = summary["std"].values
+
+        lower = np.clip(mean_nmi - std_nmi, 0.0, 1.0)
+        upper = np.clip(mean_nmi + std_nmi, 0.0, 1.0)
+
+        line_kwargs = {}
+        if colors is not None:
+            line_kwargs["color"] = colors[i]
+
+        # Style: first curve solid with filled markers, others dashed with hollow markers
+        linestyle = "-" if i == 0 else "--"
+
+        (h,) = ax.plot(
+            ks,
+            mean_nmi,
+            linestyle=linestyle,
+            marker=markers_use[i],
+            markersize=6,
+            markerfacecolor="auto",
+            label=label,
+            **line_kwargs,
+        )
+        this_color = h.get_color()
+
+        # Discretized shaded part: bar-like bands for ±1 SD at each k
+        if len(ks) > 1:
+            step = float(np.min(np.diff(ks)))
+        else:
+            step = 1.0
+        width = 0.8 * step  # a bit narrower than the spacing
+        ax.bar(
+            ks,
+            height=(upper - lower),
+            bottom=lower,
+            width=width,
+            color=this_color,
+            alpha=0.2,
+            align="center",
+            edgecolor="none",
+            linewidth=0,
+        )
+
+    ax.set_title(title, fontsize=title_fontsize)
+    ax.set_xlabel("$K$ (number of clusters)", fontsize=label_fontsize)
+    ax.set_ylabel("NMIS", fontsize=label_fontsize)
+    ax.set_ylim((0, 1))
+    ax.grid(True, linestyle="--", alpha=0.4)
+    ax.legend(loc="best", fontsize=legend_fontsize)
+    ax.tick_params(axis="both", which="major", labelsize=tick_fontsize)
+    fig.tight_layout()
+
+    if save_path:
+        fig.savefig(save_path, dpi=150, bbox_inches="tight")
+
+    if show:
+        plt.show()
+    else:
+        plt.close(fig)
 
     return
 
 
 def plot_correlation_scatters(
     df,
-    metrics,
-    xlabels,
-    ylabels,
+    metric,
+    xlabel,
+    ylabel,
     z_score_thr=2,
-    figsize=(15, 5),
+    figsize=(10, 5),
     fig_dir=None,
     plot_show=True,
 ):
@@ -493,65 +878,42 @@ def plot_correlation_scatters(
     None
     """
 
-    ncols = 2
+    ncols = 1
     nrows = 1
     fig, axes = plt.subplots(nrows, ncols, figsize=figsize, gridspec_kw={"hspace": 0.5})
 
-    i = 0
-    for idx, metric in enumerate(metrics):
-        metric_rest1 = metric + "_REST1"
-        metric_rest2 = metric + "_REST2"
-        df_overall_rest1 = df.loc[df["REST"] == 1][["Subject", metric]]
-        df_overall_rest1 = remove_outliers_zscore(df_overall_rest1, metric, z_score_thr)
-        df_overall_rest1 = df_overall_rest1.rename(columns={metric: metric_rest1})
+    metric_rest1 = metric + "_REST1"
+    metric_rest2 = metric + "_REST2"
+    df_overall_rest1 = df.loc[df["REST"] == 1][["Subject", metric]]
+    df_overall_rest1 = remove_outliers_zscore(df_overall_rest1, metric, z_score_thr)
+    df_overall_rest1 = df_overall_rest1.rename(columns={metric: metric_rest1})
 
-        df_overall_rest2 = df.loc[df["REST"] == 2][["Subject", metric]]
-        df_overall_rest2 = remove_outliers_zscore(df_overall_rest2, metric, z_score_thr)
-        df_overall_rest2 = df_overall_rest2.rename(columns={metric: metric_rest2})
+    df_overall_rest2 = df.loc[df["REST"] == 2][["Subject", metric]]
+    df_overall_rest2 = remove_outliers_zscore(df_overall_rest2, metric, z_score_thr)
+    df_overall_rest2 = df_overall_rest2.rename(columns={metric: metric_rest2})
 
-        df_overall = df_overall_rest2.merge(df_overall_rest1, how="inner")
-        df_overall = df_overall.dropna()
-        rest1_overall = np.array(df_overall[metric_rest1].to_list()).flatten()
-        rest2_overall = np.array(df_overall[metric_rest2].to_list()).flatten()
-        r, p = stats.pearsonr(rest1_overall, rest2_overall)
+    df_overall = df_overall_rest2.merge(df_overall_rest1, how="inner")
+    df_overall = df_overall.dropna()
+    rest1_overall = np.array(df_overall[metric_rest1].to_list()).flatten()
+    rest2_overall = np.array(df_overall[metric_rest2].to_list()).flatten()
+    r, p = pearsonr(rest1_overall, rest2_overall)
 
-        if idx % 2 == 0:
-            r_prev, p_prev = r, p
-            df_overall_prev = df_overall.copy()
-            metric_rest1_prev, metric_rest2_prev = metric_rest1, metric_rest2
-        else:
-            rest1_overall_prev = np.array(
-                df_overall_prev[metric_rest1_prev].to_list()
-            ).flatten()
-            rest2_overall_prev = np.array(
-                df_overall_prev[metric_rest2_prev].to_list()
-            ).flatten()
-
-            sns.regplot(
-                ax=axes[i],
-                x=rest1_overall_prev,
-                y=rest2_overall_prev,
-                color="steelblue",
-                label=r"$II$",
-                scatter=True,
-            )
-            sns.regplot(
-                ax=axes[i],
-                x=rest1_overall,
-                y=rest2_overall,
-                color="lightcoral",
-                label=r"$TC$",
-                scatter=True,
-            )
-            axes[i].set_title(
-                f"$II$: R = {r_prev:.2f} / $p$-value$_{{Bonferroni-corrected}}$ = {p_prev * 2:.2g}\n$TC$: R = {r:.2f} / $p$-value$_{{Bonferroni-corrected}}$ = {p * 2:.2g}",
-                fontsize=20,
-            )
-            axes[i].set_xlabel(xlabels[i], fontsize=20)
-            axes[i].set_ylabel(ylabels[i], fontsize=20)
-            axes[i].legend(fontsize=16)
-            axes[i].tick_params(axis="both", which="major", labelsize=18)
-            i += 1
+    sns.regplot(
+        ax=axes,
+        x=rest1_overall,
+        y=rest2_overall,
+        color="steelblue",
+        # label=r"$II$",
+        scatter=True,
+    )
+    axes.set_title(
+        f"R = {r:.2f} / $p$-value$_{{Bonferroni-corrected}}$ = {p * 2:.2g}",
+        fontsize=20,
+    )
+    axes.set_xlabel(xlabel, fontsize=20)
+    axes.set_ylabel(ylabel, fontsize=20)
+    # axes.legend(fontsize=16)
+    axes.tick_params(axis="both", which="major", labelsize=18)
 
     if fig_dir != None:
         plt.savefig(fig_dir)
@@ -562,6 +924,24 @@ def plot_correlation_scatters(
         plt.close()
 
     return
+
+
+def remove_outliers_zscore(df, column, threshold=2):
+    """Remove outliers from the 'column' of the Pandas Dataframe 'df' using z-score threshold
+    and return the corresponding collumn without outliers.
+
+    Parameters
+    ----------
+    df: Pandas Dataframe
+
+    column: string
+    """
+    x = df[column].to_list()
+    x = np.array(x).flatten()
+    z = np.abs(zscore(x))
+    inliers = np.where(z <= threshold)[0]
+
+    return df.iloc[inliers]
 
 
 def plot_metrics_distribution(
@@ -596,7 +976,7 @@ def plot_metrics_distribution(
     """
 
     fig, ax = plt.subplots(
-        nrows=2, ncols=2, figsize=figsize, gridspec_kw={"hspace": 0.5}
+        nrows=1, ncols=2, figsize=figsize, gridspec_kw={"hspace": 0.5}
     )
 
     for idx, axes in enumerate(ax.flat):
@@ -644,11 +1024,14 @@ def plot_metrics_distribution(
             split=True,
             inner="quart",
             ax=axes,
+            cut=2,  # não estende além dos dados
+            bw_adjust=1,  # menos suavização -> menos 'cauda fantasma'
+            gridsize=100,  # KDE mais precisa nos extremos
         )
-        F_mann_rest1, p_mann_rest1 = stats.mannwhitneyu(
+        F_mann_rest1, p_mann_rest1 = mannwhitneyu(
             df_male_rest1_metric[metric], df_female_rest1_metric[metric]
         )
-        F_mann_rest2, p_mann_rest2 = stats.mannwhitneyu(
+        F_mann_rest2, p_mann_rest2 = mannwhitneyu(
             df_male_rest2_metric[metric], df_female_rest2_metric[metric]
         )
         axes.set_title(
@@ -659,6 +1042,11 @@ def plot_metrics_distribution(
         axes.set_xlabel("rs-fMRI recording (REST)", fontsize=20)
         axes.legend(title="Sex", fontsize=18, title_fontsize=18)
         axes.tick_params(axis="both", which="major", labelsize=20)
+        vals = df_rest[metric].dropna().values
+        if vals.size > 0:
+            vmin, vmax = vals.min(), vals.max()
+            pad = 0.02 * (vmax - vmin if vmax > vmin else 1.0)
+            axes.set_ylim(vmin - pad, vmax + pad)
 
     if fig_dir != None:
         fig.savefig(fig_dir)
@@ -671,365 +1059,128 @@ def plot_metrics_distribution(
     return
 
 
-def _grid_communities(communities):
-    """
-    Generate boundaries of `communities`.
-    Function based on the Netneurotools package (https://github.com/netneurolab/netneurotools.git).
+def plot_models_silhouette_diagrams(
+    list_kclusters,
+    list_embeddings,
+    list_kmeans_models,
+    nodes_color=[],
+    name_dataset="",
+    fig_size=None,
+    fig_dir=None,
+    plot_show=True,
+):
+    """Plot the silhouette diagrams of K-Means models in 'list_kmeans_models'.
 
     Parameters
     ----------
-    communities : array_like
-        Community assignment vector
+    list_kclusters : list of int
+        List of K clusters for which the silhouette diagram is to be plotted.
+
+    list_embeddings : list of numpy.ndarray
+        List of the corresponding embeddings.
+
+    list_kmeans_models : list of KMeans
+        List of K-Means objects.
+
+    nodes_color : list of str, optional
+        List of nodes color. Default is an empty list.
+
+    name_dataset : str, optional
+        Name of the dataset. Default is an empty string.
+
+    fig_size : tuple of int, optional
+        Figure size as (width, height). Default is None.
+
+    fig_dir : str, optional
+        Directory to save the figure. Default is None.
+
+    plot_show : bool, optional
+        Whether to show the plot. Default is True.
 
     Returns
     -------
-    bounds : list
-        Boundaries of communities
-    """
-    communities = np.asarray(communities)
-    if 0 in communities:
-        communities = communities + 1
-
-    comm = communities[np.argsort(communities)]
-    bounds = []
-    for i in np.unique(comm):
-        ind = np.where(comm == i)
-        if len(ind) > 0:
-            bounds.append(np.min(ind))
-
-    bounds.append(len(communities))
-
-    return bounds
-
-
-def _sort_communities(consensus, communities):
-    """
-    Sort `communities` in `consensus` according to strength.
-    Function based on the Netneurotools package (https://github.com/netneurolab/netneurotools.git).
-
-    Parameters
-    ----------
-    consensus : array_like
-        Correlation matrix
-    communities : array_like
-        Community assignments for `consensus`
-
-    Returns
-    -------
-    inds : np.ndarray
-        Index array for sorting `consensus`
-    """
-    communities = np.asarray(communities)
-    if 0 in communities:
-        communities = communities + 1
-
-    bounds = _grid_communities(communities)
-    inds = np.argsort(communities)
-
-    for n, f in enumerate(bounds[:-1]):
-        i = inds[f : bounds[n + 1]]
-        cco = i[consensus[np.ix_(i, i)].mean(axis=1).argsort()[::-1]]
-        inds[f : bounds[n + 1]] = cco
-
-    return inds
-
-
-def plot_heatmap_communities(
-    data,
-    communities,
-    *,
-    inds=None,
-    edgecolor="black",
-    ax=None,
-    title=None,
-    figsize=(6.4, 4.8),
-    xlabels=None,
-    ylabels=None,
-    xlabelrotation=90,
-    ylabelrotation=0,
-    cbar=True,
-    cmap="viridis",
-    square=True,
-    xticklabels=None,
-    yticklabels=None,
-    mask_diagonal=True,
-    **kwargs,
-):
-    """
-    Plot `data` as heatmap with borders drawn around `communities`.
-    Function based on the Netneurotools package (https://github.com/netneurolab/netneurotools.git)
-
-    Parameters
-    ----------
-    data : (N, N) array_like
-        Correlation matrix
-    communities : (N,) array_like
-        Community assignments for `data`
-    inds : (N,) array_like, optional
-        Index array for sorting `data` within `communities`. If None, these
-        will be generated from `data`. Default: None
-    edgecolor : str, optional
-        Color for lines demarcating community boundaries. Default: 'black'
-    ax : matplotlib.axes.Axes, optional
-        Axis on which to plot the heatmap. If none provided, a new figure and
-        axis will be created. Default: None
-    figsize : tuple, optional
-        Size of figure to create if `ax` is not provided. Default: (20, 20)
-    {x,y}labels : list, optional
-        List of labels on {x,y}-axis for each community in `communities`. The
-        number of labels should match the number of unique communities.
-        Default: None
-    {x,y}labelrotation : float, optional
-        Angle of the rotation of the labels. Available only if `{x,y}labels`
-        provided. Default : xlabelrotation: 90, ylabelrotation: 0
-    square : bool, optional
-        Setting the matrix with equal aspect. Default: True
-    {x,y}ticklabels : list, optional
-        Incompatible with `{x,y}labels`. List of labels for each entry (not
-        community) in `data`. Default: None
-    cbar : bool, optional
-        Whether to plot colorbar. Default: True
-    mask_diagonal : bool, optional
-        Whether to mask the diagonal in the plotted heatmap. Default: True
-    kwargs : key-value mapping
-        Keyword arguments for `plt.pcolormesh()`
-
-    Returns
-    -------
-    ax : matplotlib.axes.Axes
-        Axis object containing plot
-    """
-    for t, label in zip([xticklabels, yticklabels], [xlabels, ylabels]):
-        if t is not None and label is not None:
-            raise ValueError("Cannot set both {x,y}labels and {x,y}ticklabels")
-
-    # get indices for sorting consensus
-    if inds is None:
-        inds = _sort_communities(data, communities)
-
-    if ax is None:
-        fig, ax = plt.subplots(1, 1, figsize=figsize)
-
-    # plot data re-ordered based on community and node strength
-    if mask_diagonal:
-        plot_data = np.ma.masked_where(np.eye(len(data)), data[np.ix_(inds, inds)])
-        np.fill_diagonal(plot_data, np.nan)
-    else:
-        plot_data = data[np.ix_(inds, inds)]
-
-    sns.heatmap(
-        plot_data,
-        ax=ax,
-        cbar=cbar,
-        square=square,
-        mask=None,
-        cmap=cmap,
-        **kwargs,
-    )
-    column_bar = ax.collections[0].colorbar
-    column_bar.ax.tick_params(labelsize=30)
-
-    ax.set(xlim=(0, plot_data.shape[1]), ylim=(0, plot_data.shape[0]))
-    ax.set_xlabel("ROI's cluster label$_{Subnetwork}$", fontsize=32)
-    ax.set_ylabel("ROI's cluster label$_{Subnetwork}$", fontsize=32)
-
-    if title is not None:
-        ax.set_title(title, fontsize=34)
-
-    for side in ["top", "right", "left", "bottom"]:
-        ax.spines[side].set_visible(False)
-
-    # invert the y-axis so it looks "as expected"
-    ax.invert_yaxis()
-
-    # draw borders around communities
-    bounds = _grid_communities(communities)
-    bounds[0] += 0.1
-    bounds[-1] -= 0.1
-    for n, edge in enumerate(np.diff(bounds)):
-        ax.add_patch(
-            mpatches.Rectangle(
-                (bounds[n], bounds[n]),
-                edge,
-                edge,
-                fill=False,
-                linewidth=4,
-                edgecolor=edgecolor,
-            )
-        )
-
-    if xlabels is not None or ylabels is not None:
-        # find the tick locations
-        initloc = _grid_communities(communities)
-        tickloc = []
-        for loc in range(len(initloc) - 1):
-            tickloc.append(np.mean((initloc[loc], initloc[loc + 1])))
-
-        if xlabels is not None:
-            # make sure number of labels match the number of ticks
-            if len(tickloc) != len(xlabels):
-                raise ValueError(
-                    "Number of labels do not match the number of unique communities."
-                )
-            else:
-                ax.set_xticks(tickloc)
-                ax.set_xticklabels(labels=xlabels, rotation=xlabelrotation)
-                ax.tick_params(left=False, bottom=False)
-        if ylabels is not None:
-            # make sure number of labels match the number of ticks
-            if len(tickloc) != len(ylabels):
-                raise ValueError(
-                    "Number of labels do not match the number of unique communities."
-                )
-            else:
-                ax.set_yticks(tickloc)
-                ax.set_yticklabels(labels=ylabels, rotation=ylabelrotation)
-                ax.tick_params(left=False, bottom=False)
-
-    if xticklabels is not None:
-        labels_ind = [xticklabels[i] for i in inds]
-        ax.set_xticks(np.arange(len(labels_ind)) + 0.5)
-        ax.set_xticklabels(labels_ind, rotation=90)
-    if yticklabels is not None:
-        labels_ind = [yticklabels[i] for i in inds]
-        ax.set_yticks(np.arange(len(labels_ind)) + 0.5)
-        ax.set_yticklabels(labels_ind, rotation=0)
-
-    return ax
-
-
-def generate_binarized_adjacency_matrices(
-    matrix,
-    density,
-    subnet_labels,
-    atlas_cluster_labels,
-    sc_cluster_labels,
-    danmf_cluster_labels,
-    matrix_name="",
-    fig_name=None,
-    plot_show=False,
-):
-    """Compute modularity of a network structured by the 'matrix' with specific 'density' according to the cluster labels from the
-    spectral clustering model 'sc_cluster_labels' and DANMF clustering model 'danmf_cluster_labels'.
-
-    Parameters
-    ----------
-
-    matrix: numpy array matrix
-
-    density: float
-
-    subnet_labels: list of string
-
-    atlas_cluster_labels: list of integer
-
-    sc_cluster_labels: list of integer
-
-    danmf_cluster_labels: list of integer
-
-    matrix_name: string
+    None
 
     """
 
-    matrix_bin = G_den(matrix, density)
-    matrix_bin = nx.to_numpy_array(matrix_bin)
-    matrix_bin[matrix_bin > 0] = 1
-    fig, ax = plt.subplots(nrows=3, ncols=1, figsize=(20, 45))
-
-    title = f"Adjacency matrix of {matrix_name} - Density = {int(density * 100)}\%\nReordered based on the Schaefer's atlas"
-    node_labels = atlas_cluster_labels.astype(str) + "$_{" + subnet_labels + "}$"
-    ax[0] = plot_heatmap_communities(
-        matrix_bin,
-        atlas_cluster_labels,
-        xticklabels=node_labels.to_list(),
-        yticklabels=node_labels.to_list(),
-        figsize=(35, 35),
-        cmap="viridis",
-        ax=ax[0],
-        title=title,
-    )
-
-    mod_sc = get_modularity(matrix_bin, sc_cluster_labels)
-    title = f"Adjacency matrix of {matrix_name} - Density = {int(density * 100)}\%\nClustered and reordered based on the spectral clustering outcome\nModularity$\:={mod_sc:.3f}$"
-    node_labels = sc_cluster_labels.astype(str) + "$_{" + subnet_labels + "}$"
-    plot_heatmap_communities(
-        matrix_bin,
-        sc_cluster_labels,
-        xticklabels=node_labels.to_list(),
-        yticklabels=node_labels.to_list(),
-        figsize=(35, 35),
-        cmap="viridis",
-        ax=ax[1],
-        title=title,
-    )
-
-    mod_danmf = get_modularity(matrix_bin, danmf_cluster_labels)
-    title = f"Adjacency matrix of {matrix_name} - Density = {int(density * 100)}\%\nClustered and reordered based on the DANMF-based clustering outcome\nModularity$\:={mod_danmf:.3f}$"
-    node_labels = danmf_cluster_labels.astype(str) + "$_{" + subnet_labels + "}$"
-    plot_heatmap_communities(
-        matrix_bin,
-        danmf_cluster_labels,
-        xticklabels=node_labels.to_list(),
-        yticklabels=node_labels.to_list(),
-        figsize=(35, 35),
-        cmap="viridis",
-        ax=ax[2],
-        title=title,
-    )
-    plt.tight_layout()
-    if fig_name != None:
-        plt.savefig(fig_name)
-    if plot_show:
-        plt.show()
-    else:
-        plt.close()
-    return mod_sc, mod_danmf
-
-
-def plot_edge_weights_and_node_degrees_distributions(
-    list_matrices, titles, figsize=(15, 10), fig_dir=None, plot_show=True
-):
-    """Plot the distribution of the edge weights and node degrees for a given list of adjacency matrices
-
-    Parameters
-    ----------
-    list_matrices: list of numpy array matrices
-    titles: list of strings
-    figsize: tuple
-    fig_dir: string
-    """
-    num_matrices = len(list_matrices)
+    num_subplots = len(list_kclusters)
     ncols = 2
-    nrows = num_matrices
-    fig, axes = plt.subplots(nrows=nrows, ncols=ncols, figsize=figsize)
+    nrows = (num_subplots + 1) // 2
+    fig_width = 12
+    fig_height = 4 * num_subplots
+    if fig_size != None:
+        fig_width, fig_height = fig_size[0], fig_size[1]
+    fig, axes = plt.subplots(
+        nrows, ncols, figsize=(fig_width, fig_height), gridspec_kw={"hspace": 0.25}
+    )
 
-    for i, matrix in enumerate(list_matrices):
-        # Plot edge weight distribution
-        sns.histplot(
-            lower_diagonal_exclusive(matrix),
-            bins=50,
-            color="blue",
-            ax=axes[i, 0],
-            kde=True,
-        )
-        axes[i, 0].set_title(f"Edge weight distribution of {titles[i]}", fontsize=20)
-        axes[i, 0].set_xlabel("Edge weight", fontsize=20)
-        axes[i, 0].set_ylabel("Number of edges", fontsize=20)
-        axes[i, 0].tick_params(axis="both", which="major", labelsize=18)
+    percent = {}
+    for i, ax in enumerate(axes.flat):
+        if i < num_subplots:
+            y_pred = list_kmeans_models.get(list_kclusters[i])
+            embedding = list_embeddings.get(list_kclusters[i])
+            silhouette_coefficients = silhouette_samples(embedding, y_pred)
+            silhouette_avg = silhouette_coefficients.mean()
+            df_sc = pd.DataFrame({"sc": silhouette_coefficients, "cluster": y_pred})
+            if len(nodes_color) == len(y_pred):
+                df_sc["color"] = nodes_color
+            else:
+                df_sc["color"] = [px.colors.qualitative.Light24[idx] for idx in y_pred]
 
-        # Plot node degree distribution
-        sns.histplot(
-            np.sum(matrix, axis=1), bins=50, color="red", ax=axes[i, 1], kde=True
-        )
-        axes[i, 1].set_title(f"Node degree distribution of {titles[i]}", fontsize=20)
-        axes[i, 1].set_xlabel("Node degree", fontsize=20)
-        axes[i, 1].set_ylabel("Number of edges", fontsize=20)
-        axes[i, 1].tick_params(axis="both", which="major", labelsize=18)
+            y_lower_global = 0
+            for c in range(list_kclusters[i]):
+                cth_cluster_silhouette_values = df_sc.loc[
+                    df_sc["cluster"] == c
+                ].sort_values(by="sc")
+                size_cluster_c = len(cth_cluster_silhouette_values)
+                y_lower_local = y_lower_global
+                for j in range(size_cluster_c):
+                    y_upper_local = y_lower_local + 20
+                    ax.fill_betweenx(
+                        np.arange(y_lower_local, y_upper_local),
+                        0,
+                        cth_cluster_silhouette_values.iloc[j]["sc"],
+                        facecolor=cth_cluster_silhouette_values.iloc[j]["color"],
+                        alpha=0.7,
+                    )
+                    y_lower_local = y_upper_local + 2
+
+                # Label the silhouette plots with their cluster numbers at the middle
+                ax.text(
+                    -0.05,
+                    y_lower_global + 0.5 * size_cluster_c * 20,
+                    str(c),
+                    fontsize=20,
+                )
+
+                # Compute the new y_lower for next plot
+                y_lower_global = y_upper_local + 100  # 10 for the 0 samples
+
+            percent[list_kclusters[i]] = (
+                100 * len(df_sc[df_sc["sc"] > silhouette_avg]) / len(df_sc)
+            )
+
+            ax.set_title(
+                f"Silhouette diagrams {name_dataset}, $K={list_kclusters[i]}$, $SC={silhouette_avg:.3f}$",
+                fontsize=18,
+            )
+            ax.set_xlabel("Silhouette coefficients $\eta$", fontsize=20)
+            ax.set_ylabel(r"Cluster labels", fontsize=20)
+            # The vertical line for average silhouette score of all the values
+            ax.axvline(x=silhouette_avg, color="black", linestyle="--")
+            ax.set_yticks([])  # Clear the yaxis labels / ticks
+            ax.set_xticks(np.arange(-0.1, 0.9, 0.1))
+            ax.tick_params(axis="x", labelsize=16)
+
+    if num_subplots % 2 != 0:
+        if num_subplots > 1:
+            axes[-1, -1].axis("off")
+        else:
+            axes[-1].axis("off")
 
     plt.tight_layout()
-    if fig_dir is not None:
+    if fig_dir != None:
         plt.savefig(fig_dir)
-
     if plot_show:
         plt.show()
     else:
@@ -1038,39 +1189,345 @@ def plot_edge_weights_and_node_degrees_distributions(
     return
 
 
-def plot_heatmaps(list_matrix, titles, ax=None, figsize=(20, 15), cmap="viridis"):
+def plot_node_clustering_distribution(
+    nodes_cluster,
+    nodes_color,
+    nodes_subnet,
+    fig_title="",
+    file_dir=None,
+    plot_show=True,
+    ncols=3,
+    hole_width=0.35,
+    label_fontsize=14,  # fonte geral (não usada para label externa)
+    pct_fontsize=16,  # tamanho da fonte do percentual local
+    pct2_fontsize=12,  # tamanho da fonte do percentual global (abaixo)
+    legend_fontsize=14,
+    center_fontsize=18,  # número no centro
+    center_fontweight="bold",
+    center_color="black",
+    figsize_per_col=4,
+    figsize_per_row=4.2,
+    dpi=300,
+):
+    df_brain = pd.DataFrame(
+        {"cluster": nodes_cluster, "color": nodes_color, "subnet": nodes_subnet}
+    )
+
+    cluster_list = sorted(set(nodes_cluster))
+    subnets_order = df_brain["subnet"].drop_duplicates().tolist()
+    df = pd.DataFrame(0, index=cluster_list, columns=subnets_order)
+    for subnet in subnets_order:
+        for cl in cluster_list:
+            df.loc[cl, subnet] = (
+                (df_brain["subnet"] == subnet) & (df_brain["cluster"] == cl)
+            ).sum()
+
+    color_map = df_brain.groupby("subnet")["color"].first().reindex(subnets_order)
+    colors = color_map.values.tolist()
+
+    nodes_distribution = df.sum(axis=0).values
+    nodes_distribution_safe = np.where(nodes_distribution == 0, 1, nodes_distribution)
+
+    num_subplots = len(cluster_list)
+    nrows = ceil(num_subplots / ncols)
+    fig, axes = plt.subplots(
+        nrows=nrows,
+        ncols=ncols,
+        figsize=(figsize_per_col * ncols, figsize_per_row * nrows),
+    )
+    axes = np.atleast_2d(axes)
+    axes_flat = axes.ravel()
+
+    def _autopct(pct):
+        return f"{pct:.0f}%" if pct >= 0.5 else ""
+
+    for ax, cl in zip(axes_flat, cluster_list):
+        values = df.loc[cl].values.astype(float)
+
+        # remove setores 0%
+        mask_nonzero = values > 0
+        values = values[mask_nonzero]
+        if len(values) == 0:
+            ax.axis("off")
+            continue
+
+        colors_filtered = np.array(colors)[mask_nonzero]
+        overall_pct = 100.0 * values / nodes_distribution_safe[mask_nonzero]
+
+        wedges, texts, autotexts = ax.pie(
+            values,
+            labels=None,  # sem nomes das subnets
+            labeldistance=1.1,
+            pctdistance=0.68,
+            startangle=90,
+            counterclock=True,
+            colors=colors_filtered,
+            wedgeprops=dict(width=hole_width, edgecolor="black", linewidth=1),
+            autopct=_autopct,
+            textprops={"fontsize": pct_fontsize, "color": "black", "ha": "center"},
+        )
+
+        for w, t, g_pct in zip(wedges, autotexts, overall_pct):
+            ang = (w.theta2 + w.theta1) / 2
+            x = 0.6 * np.cos(np.deg2rad(ang))
+            y = 0.6 * np.sin(np.deg2rad(ang)) - 0.3
+            ax.text(
+                x,
+                y,
+                f"({g_pct:.0f}%)",
+                ha="center",
+                va="center",
+                fontsize=pct2_fontsize,
+                color="black",
+            )
+
+        ax.text(
+            0.0,
+            0.0,
+            f"{int(cl)}",
+            ha="center",
+            va="center",
+            fontsize=center_fontsize,
+            fontweight=center_fontweight,
+            color=center_color,
+        )
+
+        ax.axis("equal")
+
+    for j in range(len(cluster_list), len(axes_flat)):
+        axes_flat[j].axis("off")
+
+    fig.suptitle(fig_title, fontsize=label_fontsize + 4, y=0.98)
+    handles = [
+        mpatches.Patch(facecolor=c, edgecolor="black", label=s)
+        for s, c in zip(subnets_order, colors)
+    ]
+    fig.legend(
+        handles=handles,
+        title="Brain functional\nsub-networks",
+        fontsize=legend_fontsize,
+        title_fontsize=legend_fontsize,
+        loc="upper right",
+        bbox_to_anchor=(0.98, 0.98),
+    )
+    fig.tight_layout(rect=[0.02, 0.02, 0.95, 0.95])
+
+    if file_dir:
+        plt.savefig(file_dir, dpi=dpi, bbox_inches="tight")
+    if plot_show:
+        plt.show()
+    else:
+        plt.close(fig)
+
+
+def plot_hypergraph_modes_strength(
+    hoi_weights_dir,
+    hoi_weights_surrogate_dir=None,
+    hoi_weights_synthetic_dir=None,
+    hoi_labels=all_triangles,
+    n_modes=51,
+    file_name=None,
+    labels=("Empirical", "Synthetic", "Surrogate"),
+    colors=("C0", "C2", "C1"),
+    show=True,
+    label_fontsize=18,
+    legend_fontsize=14,
+    title_fontsize=18,
+    tick_fontsize=12,
+    figsize=(10, 10),
+):
     """
-    Plot heatmaps of the adjacency matrices.
+    Plot per-mode hypergraph strength (sum of absolute upper-triangular weights) for A_ii and A_tc.
+    Can overlay Original, Synthetic and Surrogate curves if their paths are provided.
 
-    Parameters:
-    - list_matrix: list of numpy.ndarray
-        List of adjacency matrices.
-    - titles: list of str
-        List of titles for each heatmap.
-    - figsize: tuple of int, optional
-        Size of the figure. Default is (20, 20).
-    - cmap: str, optional
-        Colormap to use for the heatmaps. Default is 'viridis'.
-    - plot_show: bool, optional
-        If True, the plot is shown. Otherwise, the plot is saved. Default is True.
+    Parameters
+    ----------
+    hoi_weights_dir : str
+        Path to original HOI weights (.npy).
+    n_modes : int
+        Number of modes to plot (will be clipped to available modes).
+    file_name : str or None
+        If provided, saves figure to file_name.
+    hoi_weights_dir_surrogate : str or None
+        Path to surrogate HOI weights (.npy).
+    hoi_weights_dir_synthetic : str or None
+        Path to synthetic HOI weights (.npy).
+    labels : tuple
+        Labels for (Original, Synthetic, Surrogate).
+    colors : tuple
+        Colors for (Original, Synthetic, Surrogate).
+    show : bool
+        Whether to show the plot.
+    label_fontsize, legend_fontsize, title_fontsize, tick_fontsize : int
+        Font sizes.
     """
-    n = len(list_matrix)
 
-    if ax is None:
-        fig, ax = plt.subplots(nrows=n, ncols=1, figsize=figsize)
+    def mode_strengths(As):
+        m = As.shape[2]
+        sums = np.zeros(m, dtype=float)
+        for mode in range(m):
+            A_mode = np.abs(As[:, :, mode])
+            sums[mode] = np.mean(pack_upper(A_mode))
+        return sums
 
-    if n == 1:
-        ax = [ax]
+    # Load original tensors
+    As_ii_o, As_tc_o = get_symmetrized_t_fft(hoi_weights_dir, hoi_labels)
+    strengths = []
+    meta = []
 
-    for i, (matrix, title) in enumerate(zip(list_matrix, titles)):
-        m = matrix.copy()
-        np.fill_diagonal(m, np.nan)
-        sns.heatmap(m, ax=ax[i], cmap=cmap)
-        ax[i].set_title(title, fontsize=44)
-        ax[i].set_xlabel("ROI", fontsize=38)
-        ax[i].set_ylabel("ROI", fontsize=38)
-        cbar = ax[i].collections[0].colorbar
-        cbar.ax.tick_params(labelsize=34)
-        ax[i].tick_params(axis="both", which="major", labelsize=12)
+    # Original
+    s_ii_o = mode_strengths(As_ii_o)
+    s_tc_o = mode_strengths(As_tc_o)
+    strengths.append(("orig", s_ii_o, s_tc_o))
+    meta.append(
+        (
+            "orig",
+            labels[0] if len(labels) > 0 else "Empirical",
+            colors[0] if len(colors) > 0 else "C0",
+            "o",
+            "-",
+        )
+    )
 
-    return ax
+    # Synthetic (optional)
+    if hoi_weights_synthetic_dir is not None:
+        As_ii_syn, As_tc_syn = get_symmetrized_t_fft(
+            hoi_weights_synthetic_dir, hoi_labels
+        )
+        s_ii_syn = mode_strengths(As_ii_syn)
+        s_tc_syn = mode_strengths(As_tc_syn)
+        strengths.append(("synthetic", s_ii_syn, s_tc_syn))
+        meta.append(
+            (
+                "synthetic",
+                labels[1] if len(labels) > 1 else "Synthetic",
+                colors[1] if len(colors) > 1 else "C2",
+                "s",
+                "--",
+            )
+        )
+
+    # Surrogate (optional)
+    if hoi_weights_surrogate_dir is not None:
+        As_ii_surr, As_tc_surr = get_symmetrized_t_fft(
+            hoi_weights_surrogate_dir, hoi_labels
+        )
+        s_ii_surr = mode_strengths(As_ii_surr)
+        s_tc_surr = mode_strengths(As_tc_surr)
+        strengths.append(("surrogate", s_ii_surr, s_tc_surr))
+        idx = 2 if len(labels) > 2 else -1
+        color_idx = 2 if len(colors) > 2 else -1
+        meta.append(
+            (
+                "surrogate",
+                labels[idx] if idx != -1 else "Surrogate",
+                colors[color_idx] if color_idx != -1 else "C1",
+                "D",
+                "--",
+            )
+        )
+
+    # Determine common number of modes
+    available = [len(s_ii) for _, s_ii, _ in strengths]
+    m_common = min([n_modes] + available) if n_modes is not None else min(available)
+    modes = np.arange(m_common)
+
+    # Truncate all to common modes
+    strengths = [
+        (name, s_ii[:m_common], s_tc[:m_common]) for (name, s_ii, s_tc) in strengths
+    ]
+
+    # Top-2 modes by strength on original after truncation
+    s_ii_o_trunc = strengths[0][1]
+    s_tc_o_trunc = strengths[0][2]
+    top2_ii = np.argsort(s_ii_o_trunc)[-2:][::-1]
+    top2_tc = np.argsort(s_tc_o_trunc)[-2:][::-1]
+
+    fig, axes = plt.subplots(2, 1, figsize=figsize, sharex=False)
+    ax1, ax2 = axes
+
+    # Plot A_ii
+    for (name, s_ii, _), (l, label, color, marker, linestyle) in zip(strengths, meta):
+        if l == "orig":
+            label += " $\\mathcal{G}_{OI}^{(k)}$"
+        elif l == "synthetic":
+            label += " $\\breve{\\mathcal{G}}_{OI}^{(k)}$"
+        elif l == "surrogate":
+            label += " $\\widetilde{\\mathcal{G}}_{OI}^{(k)}$"
+        ax1.plot(
+            modes,
+            s_ii,
+            marker=marker,
+            linestyle=linestyle,
+            label=label,
+            color=color,
+        )
+    # Vertical lines for original top-2
+    label_added = False
+    for m in top2_ii:
+        ax1.axvline(
+            m,
+            color=meta[0][2],
+            linestyle="--",
+            alpha=0.8,
+            linewidth=1.5,
+            label=("Top-2 modes (empirical): " + str(list(map(int, top2_ii))))
+            if not label_added
+            else None,
+        )
+        label_added = True
+    ax1.set_xlabel("Mode $k$", fontsize=label_fontsize)
+    ax1.set_ylabel("Connection strength", fontsize=label_fontsize)
+    ax1.set_title(
+        r"Hypergraph mode strength $\mathcal{G}_{OI}^{(k)}$", fontsize=title_fontsize
+    )
+    ax1.tick_params(axis="both", labelsize=tick_fontsize)
+    ax1.grid(True, linestyle="--", alpha=0.4)
+    ax1.legend(fontsize=legend_fontsize)
+
+    # Plot A_tc
+    for (name, _, s_tc), (l, label, color, marker, linestyle) in zip(strengths, meta):
+        if l == "orig":
+            label += " $\\mathcal{G}_{TC}^{(k)}$"
+        elif l == "synthetic":
+            label += " $\\breve{\\mathcal{G}}_{TC}^{(k)}$"
+        elif l == "surrogate":
+            label += " $\\widetilde{\\mathcal{G}}_{TC}^{(k)}$"
+        ax2.plot(
+            modes,
+            s_tc,
+            marker=marker,
+            linestyle=linestyle,
+            label=label,
+            color=color,
+        )
+    # Vertical lines for original top-2
+    label_added = False
+    for m in top2_tc:
+        ax2.axvline(
+            m,
+            color=meta[0][2],
+            linestyle="--",
+            alpha=0.8,
+            linewidth=1.5,
+            label=("Top-2 modes (empirical): " + str(list(map(int, top2_tc))))
+            if not label_added
+            else None,
+        )
+        label_added = True
+    ax2.set_xlabel("Mode $k$", fontsize=label_fontsize)
+    ax2.set_ylabel("Connection strength", fontsize=label_fontsize)
+    ax2.set_title(
+        r"Hypergraph mode strength $\mathcal{G}_{TC}^{(k)}$", fontsize=title_fontsize
+    )
+    ax2.tick_params(axis="both", labelsize=tick_fontsize)
+    ax2.grid(True, linestyle="--", alpha=0.4)
+    ax2.legend(fontsize=legend_fontsize)
+
+    plt.tight_layout()
+    if file_name:
+        plt.savefig(file_name, dpi=300, bbox_inches="tight")
+    if show:
+        plt.show()
+    else:
+        plt.close(fig)

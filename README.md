@@ -1,4 +1,4 @@
-# Notebooks of the papers entitled "Emergence of Higher-Order Functional Brain Connectivity with Hypergraph Signal Processing" and "From Pairwise to Higher-Order Brain Community Detection: A Hypergraph Signal Processing Approach on Brain Functional Connectivity Analysis"
+# Notebook of the paper entitled "From Pairwise to Higher-Order Brain Community Detection: A Hypergraph Signal Processing Approach on Brain Functional Connectivity Analysis"
 
 Authors: Breno Bispo, José Neto, Juliano Lima and Fernando Santos 
 
@@ -15,33 +15,24 @@ Contact information: <breno.bispo@ufpe.br> or <juliano.lima@ufpe.br> or <f.a.nob
 
 ### <a id='general_information'></a> General information:
 
- The primary purpose of this project is to reproduce the results depicted in the paper entitled **Emergence of Higher-Order Functional Brain Connectivity with Hypergraph Signal Processing**, published in *32nd European Signal Processing Conference (EUSIPCO 2024)*, and **From Pairwise to Higher-Order Brain Community Detection: A Hypergraph Signal Processing Approach on Brain Functional Connectivity Analysis**, submitted on *Computers in Biology and Medicine* journal.
+ The primary purpose of this project is to reproduce the results depicted in the paper entitled **From Pairwise to Higher-Order Brain Community Detection: A Hypergraph Signal Processing Approach on Brain Functional Connectivity Analysis**, submitted in *Computers in Biology and Medicine* journal.
 
 ### <a id='content'></a> Content:
 
 This folder consist in the following folders / files:
 
-- **hgsp_spectrum_analysis_fmri.ipynb**: a Jupyter Notebook that reproduce the results presented in the paper *Emergence of Higher-Order Functional Brain Connectivity with Hypergraph Signal Processing*, published in EUSIPCO 2024 (DOI: https://doi.org/10.23919/EUSIPCO63174.2024.10715376);
-- **hgsp_clustering_analysis_fmri.ipynb**: a Jupyter Notebook that reproduce the results presented in the paper *From Pairwise to Higher-Order Brain Community Detection: A Hypergraph Signal Processing Approach on Brain Functional Connectivity Analysis*, submitted on Computers in Biology and Medicine journal;
-- **hgsp_brain_dataset_setup.py**: a script to pre-process the correlation matrices and HOI weights of each rs-fMRI scan. Moreover, it computes the mean individual correlation matrix and the HOI weights;
+- **hgsp_brain_communities.ipynb**: a Jupyter Notebook that reproduce the results presented in the paper *From Pairwise to Higher-Order Brain Community Detection: A Hypergraph Signal Processing Approach on Brain Functional Connectivity Analysis*, submitted on Computers in Biology and Medicine journal;
 - **Background_Scripts**: a folder that consists of auxiliary Python modules related to (Hyper-)Graph Signal Processing tools, clustering algorithms and plotting functions;
-- **Schaefer_100Parcels_Atlas**: a folder that consists of spacial coordinates, region names/colors, subnet names/colors, etc, of 116 regions-of-interest (ROIs) of the brain (based on the Schaefer's brain atlas https://doi.org/10.1093/cercor/bhx179), the mean individual correlation matrix $\mathbf{A}$ (given by the average of $\mathbf{A}^{[0,1,\cdots,1977]}$), and the mean individual HOI weights using *interaction information* ($II$) and *total correlation* ($TC$) metrics;
-- **Figures**: a folder that consists the following subfolders:
-  - *Emergence_of_Higher-Order_Functional_Brain_Connectivity*: contains the figures of the paper *Emergence of Higher-Order Functional Brain Connectivity with Hypergraph Signal Processing*
-  - *From_Pairwise_to_HIgher-order_Clustering*: it contains the following subfolders:
-    - brain_hypergraph_3D_models: a folder that contains 3D representations of the brain graph $\mathcal{G}_P$, and the brain hypergraphs $\mathcal{H}\_{II}$ and $\mathcal{H}\_{TC}$;
-    - clustering_outcomes: a folder that contains the clustering outcomes from the brain graph $\mathcal{G}_P$, and brain hypergraph modes $\mathcal{G}^{(k=0,4)}\_{II}$, $\mathcal{G}^{(k=0,4)}\_{TC}$;
-    - binarized_adjacency_matrices: a folder that contains binarized adjacency matrices of $\mathcal{G}_P$, $\mathcal{G}^{(k=0,4)}\_{II}$, $\mathcal{G}^{(k=0,4)}\_{TC}$ (for different values of connection density $D \in \\{0\\% ,5\\%,15\\%,20\\%\\}$), with rows and columns ordered based on the clustering outcomes;
-    - null_models: a folder that contains 3D illustrations of brain clusters from the null models of $\mathcal{G}^{(k=0,4)}\_{II}$, $\mathcal{G}^{(k=0,4)}\_{TC}$. Additionally, it contains heatmaps of the adjacency matrices of the original versions of brain hypergraph modes and their corresponding rewired (null model) counterparts;
-    - brain_signatures: a folder that contains the results from the analysis of brain signatures described in the paper.
+- **Schaefer_100Parcels_Atlas**: a folder that consists of spacial coordinates, region names/colors, subnet names/colors, etc, of 116 regions-of-interest (ROIs) of the brain (based on the Schaefer's brain atlas https://doi.org/10.1093/cercor/bhx179);
+- **3D_Brain_Model**: a folder that contains the 3D brain surface object.
 
 ### <a id='data'></a> Data availability:
 
-The volunteers' correlation matrices from the rs-fMRI time series are available at https://doi.org/10.5281/zenodo.6770120. Additionally, the hyperedge weights of the triangles, calculated using $II$ and $TC$ metrics, are available at https://doi.org/10.5281/zenodo.14606768.
+The volunteers' datasets are available at https://doi.org/10.5281/zenodo.17538433.
 
 ### <a id='requirements'></a> Usage and Requirements:
 
-This project uses **Anaconda and Python version 3.7**. In this way, we recommend creating a new environment in Anaconda dedicated for the use of this notebook (primarly tested on Windows) following the instructions provided in this repository: https://github.com/multinetlab-amsterdam/network_TDA_tutorial.
+This project uses **Anaconda and Python version 3.9**. In this way, we recommend creating a new environment in Anaconda dedicated for the use of this notebook (primarly tested on Windows) following the instructions provided in this repository: https://github.com/multinetlab-amsterdam/network_TDA_tutorial.
 
 To install these dependencies, follow these steps:
 
@@ -72,18 +63,23 @@ pip install -r requirements.txt
 
 This command will install all the packages listed in `requirements.txt`:
 
-  - scikit-learn: 1.0.2
-  - jupyterlab  : 3.3.4
-  - notebook    : 6.5.2
-  - networkx  : 2.6.3
-  - karateclub: 1.3.3
-  - seaborn   : 0.11.0
-  - scipy     : 1.5.0
-  - matplotlib: 3.3.2
-  - numpy     : 1.18.5
-  - plotly    : 4.6.0
-  - pandas    : 1.1.3
-  - bctpy     : 0.6.0
+- permetrics: 2.0.0
+- scipy     : 1.8.0
+- tqdm      : 4.67.1
+- trimesh   : 4.7.0
+- seaborn   : 0.11.2
+- sys       : 3.9.23
+- networkx  : 2.4
+- numpy     : 1.22.3
+- joblib    : 1.5.1
+- thoi      : 0.2.37
+- re        : 2.2.1
+- pandas    : 1.3.5
+- karateclub: 1.3.3
+- plotly    : 4.6.0
+- matplotlib: 3.5.2
+- sklearn   : 1.6.1
+- IPython   : 8.4.0
 
 
 Now, you are ready to run the project.
