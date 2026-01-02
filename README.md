@@ -1,8 +1,8 @@
 # Notebook of the paper entitled "From Pairwise to Higher-Order Brain Community Detection: A Hypergraph Signal Processing Approach on Brain Functional Connectivity Analysis"
 
-Authors: Breno Bispo, José Neto, Juliano Lima and Fernando Santos 
+Authors: Breno C. Bispo, José R. Oliveira Neto, Juliano B. Lima and Fernando A. N. Santos 
 
-Contact information: <breno.bispo@ufpe.br> or <juliano.lima@ufpe.br> or <f.a.nobregasantos@uva.nl>
+Contact information: <breno.bispo@ufpe.br>
 
 ## Table of contents
 1. [General information](#general_information)
@@ -15,7 +15,7 @@ Contact information: <breno.bispo@ufpe.br> or <juliano.lima@ufpe.br> or <f.a.nob
 
 ### <a id='general_information'></a> General information:
 
- The primary purpose of this project is to reproduce the results depicted in the paper entitled **From Pairwise to Higher-Order Brain Community Detection: A Hypergraph Signal Processing Approach on Brain Functional Connectivity Analysis**, submitted in *Computers in Biology and Medicine* journal.
+ The primary purpose of this project is to reproduce the results depicted in the paper entitled **From Pairwise to Higher-Order Brain Community Detection: A Hypergraph Signal Processing Approach on Brain Functional Connectivity Analysis**, published in *Computers in Biology and Medicine* journal (https://doi.org/10.1016/j.compbiomed.2025.111409).
 
 ### <a id='content'></a> Content:
 
@@ -86,6 +86,10 @@ Now, you are ready to run the project.
      
 
 ### <a id='citation'></a> Citation:
+
+If you use some of our codes, please cite:
+
+- [Bispo, B. C., de Oliveira Neto, J. R., Lima, J. B., Santos, F. A. N. From pairwise to higher-order brain community detection: A hypergraph signal processing approach on brain functional connectivity analysis. Computers in Biology and Medicine, v. 201, p. 111409, 2026.](https://doi.org/10.1016/j.compbiomed.2025.111409)
 
 Here are some of the key papers where the data visualisation of this project is based on:
 
